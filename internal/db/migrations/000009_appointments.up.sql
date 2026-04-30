@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS appointments (
     bay_id INT NOT NULL REFERENCES service_bays(id) ON DELETE SET NULL,
     technician_id INT NOT NULL REFERENCES technicians(id) ON DELETE SET NULL,
 
-    customer_name VARCHAR(100) NOT NULL,
+    customer_name VARCHAR(100) NOT NULL DEFAULT 'confirmed',
 
     status status_type NOT NULL,
 

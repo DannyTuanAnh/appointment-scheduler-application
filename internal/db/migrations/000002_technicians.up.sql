@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS technicians (
     name VARCHAR(50) NOT NULL,
     level technician_level NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    inactive_since TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

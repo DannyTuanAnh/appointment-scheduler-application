@@ -1,2 +1,3 @@
 DROP TABLE IF EXISTS appointments;
 DROP TYPE IF EXISTS status_type;
+DROP EXTENSION IF EXISTS btree_gist;
