@@ -75,3 +75,38 @@ FROM service_bays
 WHERE dealership_id = $1
   AND bay_type_id = $2
 ORDER BY id;
+
+-- SERVICE BAY TYPES
+
+-- name: CreateServiceBayType :one
+INSERT INTO service_bay_types (name)
+VALUES ($1)
+RETURNING id, name, created_at, updated_at;
+
+-- name: UpdateServiceBayTypeByID :one
+UPDATE service_bay_types
+SET name = COALESCE(sqlc.narg('name')::text, name),
+    updated_at = now()
+WHERE id = sqlc.arg('id')
+RETURNING id, name, created_at, updated_at;
+
+-- name: DeleteServiceBayTypeByID :exec
+DELETE FROM service_bay_types
+WHERE id = $1;
+
+-- name: ListServiceBayTypes :many
+SELECT id, name, created_at, updated_at
+FROM service_bay_types
+ORDER BY name;
+
+-- name: GetServiceBayTypeByID :one
+SELECT id, name, created_at, updated_at
+FROM service_bay_types
+WHERE id = $1
+LIMIT 1;
+
+-- name: SearchServiceBayTypesByName :many
+SELECT id, name, created_at, updated_at
+FROM service_bay_types
+WHERE unaccent(name) ILIKE unaccent('%' || $1 || '%')
+ORDER BY name;

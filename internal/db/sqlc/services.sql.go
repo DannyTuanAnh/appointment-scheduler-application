@@ -72,36 +72,6 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 	return i, err
 }
 
-const createServiceBayType = `-- name: CreateServiceBayType :one
-
-INSERT INTO service_bay_types (name)
-VALUES ($1)
-RETURNING id, name, created_at, updated_at
-`
-
-// SERVICE BAY TYPES
-func (q *Queries) CreateServiceBayType(ctx context.Context, name string) (ServiceBayType, error) {
-	row := q.db.QueryRow(ctx, createServiceBayType, name)
-	var i ServiceBayType
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
-const deleteServiceBayTypeByID = `-- name: DeleteServiceBayTypeByID :exec
-DELETE FROM service_bay_types
-WHERE id = $1
-`
-
-func (q *Queries) DeleteServiceBayTypeByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteServiceBayTypeByID, id)
-	return err
-}
-
 const deleteServiceByID = `-- name: DeleteServiceByID :exec
 DELETE FROM services
 WHERE id = $1
@@ -110,25 +80,6 @@ WHERE id = $1
 func (q *Queries) DeleteServiceByID(ctx context.Context, id int32) error {
 	_, err := q.db.Exec(ctx, deleteServiceByID, id)
 	return err
-}
-
-const getServiceBayTypeByID = `-- name: GetServiceBayTypeByID :one
-SELECT id, name, created_at, updated_at
-FROM service_bay_types
-WHERE id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetServiceBayTypeByID(ctx context.Context, id int32) (ServiceBayType, error) {
-	row := q.db.QueryRow(ctx, getServiceBayTypeByID, id)
-	var i ServiceBayType
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const getServiceByID = `-- name: GetServiceByID :one
@@ -199,37 +150,6 @@ func (q *Queries) GetServiceDetailByID(ctx context.Context, id int32) (GetServic
 		&i.RequiredSkillIds,
 	)
 	return i, err
-}
-
-const listServiceBayTypes = `-- name: ListServiceBayTypes :many
-SELECT id, name, created_at, updated_at
-FROM service_bay_types
-ORDER BY name
-`
-
-func (q *Queries) ListServiceBayTypes(ctx context.Context) ([]ServiceBayType, error) {
-	rows, err := q.db.Query(ctx, listServiceBayTypes)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ServiceBayType{}
-	for rows.Next() {
-		var i ServiceBayType
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
 }
 
 const listServices = `-- name: ListServices :many
@@ -324,38 +244,6 @@ func (q *Queries) RemoveSkillRequirementsFromService(ctx context.Context, arg Re
 	return err
 }
 
-const searchServiceBayTypesByName = `-- name: SearchServiceBayTypesByName :many
-SELECT id, name, created_at, updated_at
-FROM service_bay_types
-WHERE unaccent(name) ILIKE unaccent('%' || $1 || '%')
-ORDER BY name
-`
-
-func (q *Queries) SearchServiceBayTypesByName(ctx context.Context, dollar_1 *string) ([]ServiceBayType, error) {
-	rows, err := q.db.Query(ctx, searchServiceBayTypesByName, dollar_1)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []ServiceBayType{}
-	for rows.Next() {
-		var i ServiceBayType
-		if err := rows.Scan(
-			&i.ID,
-			&i.Name,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
 const searchServicesByName = `-- name: SearchServicesByName :many
 SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
 FROM services
@@ -388,31 +276,6 @@ func (q *Queries) SearchServicesByName(ctx context.Context, dollar_1 *string) ([
 		return nil, err
 	}
 	return items, nil
-}
-
-const updateServiceBayTypeByID = `-- name: UpdateServiceBayTypeByID :one
-UPDATE service_bay_types
-SET name = COALESCE($1::text, name),
-    updated_at = now()
-WHERE id = $2
-RETURNING id, name, created_at, updated_at
-`
-
-type UpdateServiceBayTypeByIDParams struct {
-	Name *string `json:"name"`
-	ID   int32   `json:"id"`
-}
-
-func (q *Queries) UpdateServiceBayTypeByID(ctx context.Context, arg UpdateServiceBayTypeByIDParams) (ServiceBayType, error) {
-	row := q.db.QueryRow(ctx, updateServiceBayTypeByID, arg.Name, arg.ID)
-	var i ServiceBayType
-	err := row.Scan(
-		&i.ID,
-		&i.Name,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
 }
 
 const updateServiceByID = `-- name: UpdateServiceByID :one
