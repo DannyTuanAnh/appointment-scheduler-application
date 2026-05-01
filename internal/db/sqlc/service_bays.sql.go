@@ -7,6 +7,7 @@ package sqlc
 
 import (
 	"context"
+	"time"
 )
 
 const createServiceBay = `-- name: CreateServiceBay :one
@@ -89,20 +90,33 @@ func (q *Queries) DeleteServiceBayTypeByID(ctx context.Context, id int32) (int64
 }
 
 const getServiceBayByID = `-- name: GetServiceBayByID :one
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE id = $1
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.id = $1
 LIMIT 1
 `
 
-func (q *Queries) GetServiceBayByID(ctx context.Context, id int32) (ServiceBay, error) {
+type GetServiceBayByIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) GetServiceBayByID(ctx context.Context, id int32) (GetServiceBayByIDRow, error) {
 	row := q.db.QueryRow(ctx, getServiceBayByID, id)
-	var i ServiceBay
+	var i GetServiceBayByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.DealershipID,
 		&i.BayTypeID,
-		&i.Name,
+		&i.TypeName,
+		&i.ServiceBayName,
 		&i.IsActive,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -161,25 +175,38 @@ func (q *Queries) ListServiceBayTypes(ctx context.Context) ([]ServiceBayType, er
 }
 
 const listServiceBays = `-- name: ListServiceBays :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-ORDER BY dealership_id, id
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+ORDER BY sb.dealership_id, sb.bay_type_id, sb.name
 `
 
-func (q *Queries) ListServiceBays(ctx context.Context) ([]ServiceBay, error) {
+type ListServiceBaysRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) ListServiceBays(ctx context.Context) ([]ListServiceBaysRow, error) {
 	rows, err := q.db.Query(ctx, listServiceBays)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []ListServiceBaysRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i ListServiceBaysRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -195,26 +222,39 @@ func (q *Queries) ListServiceBays(ctx context.Context) ([]ServiceBay, error) {
 }
 
 const listServiceBaysByDealershipID = `-- name: ListServiceBaysByDealershipID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-ORDER BY id
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = $1
+ORDER BY sb.bay_type_id, sb.name
 `
 
-func (q *Queries) ListServiceBaysByDealershipID(ctx context.Context, dealershipID int32) ([]ServiceBay, error) {
+type ListServiceBaysByDealershipIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) ListServiceBaysByDealershipID(ctx context.Context, dealershipID int32) ([]ListServiceBaysByDealershipIDRow, error) {
 	rows, err := q.db.Query(ctx, listServiceBaysByDealershipID, dealershipID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []ListServiceBaysByDealershipIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i ListServiceBaysByDealershipIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -230,11 +270,12 @@ func (q *Queries) ListServiceBaysByDealershipID(ctx context.Context, dealershipI
 }
 
 const listServiceBaysByDealershipIDAndTypeID = `-- name: ListServiceBaysByDealershipIDAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND bay_type_id = $2
-ORDER BY id
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = $1
+  AND sb.bay_type_id = $2
+ORDER BY sb.id
 `
 
 type ListServiceBaysByDealershipIDAndTypeIDParams struct {
@@ -242,20 +283,32 @@ type ListServiceBaysByDealershipIDAndTypeIDParams struct {
 	BayTypeID    int32 `json:"bay_type_id"`
 }
 
-func (q *Queries) ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, arg ListServiceBaysByDealershipIDAndTypeIDParams) ([]ServiceBay, error) {
+type ListServiceBaysByDealershipIDAndTypeIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, arg ListServiceBaysByDealershipIDAndTypeIDParams) ([]ListServiceBaysByDealershipIDAndTypeIDRow, error) {
 	rows, err := q.db.Query(ctx, listServiceBaysByDealershipIDAndTypeID, arg.DealershipID, arg.BayTypeID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []ListServiceBaysByDealershipIDAndTypeIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i ListServiceBaysByDealershipIDAndTypeIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -271,26 +324,39 @@ func (q *Queries) ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, ar
 }
 
 const listServiceBaysByTypeID = `-- name: ListServiceBaysByTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE bay_type_id = $1
-ORDER BY dealership_id, id
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.bay_type_id = $1
+ORDER BY sb.dealership_id, sb.name
 `
 
-func (q *Queries) ListServiceBaysByTypeID(ctx context.Context, bayTypeID int32) ([]ServiceBay, error) {
+type ListServiceBaysByTypeIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) ListServiceBaysByTypeID(ctx context.Context, bayTypeID int32) ([]ListServiceBaysByTypeIDRow, error) {
 	rows, err := q.db.Query(ctx, listServiceBaysByTypeID, bayTypeID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []ListServiceBaysByTypeIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i ListServiceBaysByTypeIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -338,26 +404,39 @@ func (q *Queries) SearchServiceBayTypesByName(ctx context.Context, dollar_1 *str
 }
 
 const searchServiceBaysByName = `-- name: SearchServiceBaysByName :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE unaccent(name) ILIKE unaccent('%' || $1 || '%')
-ORDER BY name
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE unaccent(sb.name) ILIKE unaccent('%' || $1::text || '%')
+ORDER BY sb.dealership_id, sb.name
 `
 
-func (q *Queries) SearchServiceBaysByName(ctx context.Context, dollar_1 *string) ([]ServiceBay, error) {
-	rows, err := q.db.Query(ctx, searchServiceBaysByName, dollar_1)
+type SearchServiceBaysByNameRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) SearchServiceBaysByName(ctx context.Context, serviceBayName string) ([]SearchServiceBaysByNameRow, error) {
+	rows, err := q.db.Query(ctx, searchServiceBaysByName, serviceBayName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []SearchServiceBaysByNameRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i SearchServiceBaysByNameRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -373,32 +452,45 @@ func (q *Queries) SearchServiceBaysByName(ctx context.Context, dollar_1 *string)
 }
 
 const searchServiceBaysByNameAndDealershipID = `-- name: SearchServiceBaysByNameAndDealershipID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = $1
+  AND unaccent(sb.name) ILIKE unaccent('%' || $2::text || '%')
+ORDER BY sb.bay_type_id, sb.name
 `
 
 type SearchServiceBaysByNameAndDealershipIDParams struct {
-	DealershipID int32   `json:"dealership_id"`
-	Column2      *string `json:"column_2"`
+	DealershipID   int32  `json:"dealership_id"`
+	ServiceBayName string `json:"service_bay_name"`
 }
 
-func (q *Queries) SearchServiceBaysByNameAndDealershipID(ctx context.Context, arg SearchServiceBaysByNameAndDealershipIDParams) ([]ServiceBay, error) {
-	rows, err := q.db.Query(ctx, searchServiceBaysByNameAndDealershipID, arg.DealershipID, arg.Column2)
+type SearchServiceBaysByNameAndDealershipIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) SearchServiceBaysByNameAndDealershipID(ctx context.Context, arg SearchServiceBaysByNameAndDealershipIDParams) ([]SearchServiceBaysByNameAndDealershipIDRow, error) {
+	rows, err := q.db.Query(ctx, searchServiceBaysByNameAndDealershipID, arg.DealershipID, arg.ServiceBayName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []SearchServiceBaysByNameAndDealershipIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i SearchServiceBaysByNameAndDealershipIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -414,32 +506,45 @@ func (q *Queries) SearchServiceBaysByNameAndDealershipID(ctx context.Context, ar
 }
 
 const searchServiceBaysByNameAndTypeID = `-- name: SearchServiceBaysByNameAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE bay_type_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.bay_type_id = $1
+  AND unaccent(sb.name) ILIKE unaccent('%' || $2::text || '%')
+ORDER BY sb.dealership_id, sb.name
 `
 
 type SearchServiceBaysByNameAndTypeIDParams struct {
-	BayTypeID int32   `json:"bay_type_id"`
-	Column2   *string `json:"column_2"`
+	BayTypeID      int32  `json:"bay_type_id"`
+	ServiceBayName string `json:"service_bay_name"`
 }
 
-func (q *Queries) SearchServiceBaysByNameAndTypeID(ctx context.Context, arg SearchServiceBaysByNameAndTypeIDParams) ([]ServiceBay, error) {
-	rows, err := q.db.Query(ctx, searchServiceBaysByNameAndTypeID, arg.BayTypeID, arg.Column2)
+type SearchServiceBaysByNameAndTypeIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) SearchServiceBaysByNameAndTypeID(ctx context.Context, arg SearchServiceBaysByNameAndTypeIDParams) ([]SearchServiceBaysByNameAndTypeIDRow, error) {
+	rows, err := q.db.Query(ctx, searchServiceBaysByNameAndTypeID, arg.BayTypeID, arg.ServiceBayName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []SearchServiceBaysByNameAndTypeIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i SearchServiceBaysByNameAndTypeIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,
@@ -455,34 +560,47 @@ func (q *Queries) SearchServiceBaysByNameAndTypeID(ctx context.Context, arg Sear
 }
 
 const searchServiceBaysByNameDealershipIDAndTypeID = `-- name: SearchServiceBaysByNameDealershipIDAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND bay_type_id = $2
-  AND unaccent(name) ILIKE unaccent('%' || $3 || '%')
-ORDER BY name
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = $1
+  AND sb.bay_type_id = $2
+  AND unaccent(sb.name) ILIKE unaccent('%' || $3::text || '%')
+ORDER BY sb.name
 `
 
 type SearchServiceBaysByNameDealershipIDAndTypeIDParams struct {
-	DealershipID int32   `json:"dealership_id"`
-	BayTypeID    int32   `json:"bay_type_id"`
-	Column3      *string `json:"column_3"`
+	DealershipID   int32  `json:"dealership_id"`
+	BayTypeID      int32  `json:"bay_type_id"`
+	ServiceBayName string `json:"service_bay_name"`
 }
 
-func (q *Queries) SearchServiceBaysByNameDealershipIDAndTypeID(ctx context.Context, arg SearchServiceBaysByNameDealershipIDAndTypeIDParams) ([]ServiceBay, error) {
-	rows, err := q.db.Query(ctx, searchServiceBaysByNameDealershipIDAndTypeID, arg.DealershipID, arg.BayTypeID, arg.Column3)
+type SearchServiceBaysByNameDealershipIDAndTypeIDRow struct {
+	ID             int32     `json:"id"`
+	DealershipID   int32     `json:"dealership_id"`
+	BayTypeID      int32     `json:"bay_type_id"`
+	TypeName       *string   `json:"type_name"`
+	ServiceBayName string    `json:"service_bay_name"`
+	IsActive       bool      `json:"is_active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+func (q *Queries) SearchServiceBaysByNameDealershipIDAndTypeID(ctx context.Context, arg SearchServiceBaysByNameDealershipIDAndTypeIDParams) ([]SearchServiceBaysByNameDealershipIDAndTypeIDRow, error) {
+	rows, err := q.db.Query(ctx, searchServiceBaysByNameDealershipIDAndTypeID, arg.DealershipID, arg.BayTypeID, arg.ServiceBayName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []ServiceBay{}
+	items := []SearchServiceBaysByNameDealershipIDAndTypeIDRow{}
 	for rows.Next() {
-		var i ServiceBay
+		var i SearchServiceBaysByNameDealershipIDAndTypeIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceBayName,
 			&i.IsActive,
 			&i.CreatedAt,
 			&i.UpdatedAt,

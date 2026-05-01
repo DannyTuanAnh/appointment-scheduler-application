@@ -1,32 +1,69 @@
 -- name: ListServiceBays :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-ORDER BY dealership_id, id;
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+ORDER BY sb.dealership_id, sb.bay_type_id, sb.name;
+
+-- name: ListServiceBaysByDealershipID :many
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = sqlc.arg('dealership_id')
+ORDER BY sb.bay_type_id, sb.name;
+
+-- name: ListServiceBaysByTypeID :many
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.bay_type_id = sqlc.arg('bay_type_id')
+ORDER BY sb.dealership_id, sb.name;
+
+-- name: ListServiceBaysByDealershipIDAndTypeID :many
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = sqlc.arg('dealership_id')
+  AND sb.bay_type_id = sqlc.arg('bay_type_id')
+ORDER BY sb.id;
 
 -- name: GetServiceBayByID :one
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE id = $1
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.id = sqlc.arg('id')
 LIMIT 1;
 
 -- name: SearchServiceBaysByName :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE unaccent(name) ILIKE unaccent('%' || $1 || '%')
-ORDER BY name;
-
--- name: ListServiceBaysByDealershipID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-ORDER BY id;
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE unaccent(sb.name) ILIKE unaccent('%' || sqlc.arg('service_bay_name')::text || '%')
+ORDER BY sb.dealership_id, sb.name;
 
 -- name: SearchServiceBaysByNameAndDealershipID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name;
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = sqlc.arg('dealership_id')
+  AND unaccent(sb.name) ILIKE unaccent('%' || sqlc.arg('service_bay_name')::text || '%')
+ORDER BY sb.bay_type_id, sb.name;
+
+-- name: SearchServiceBaysByNameAndTypeID :many
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.bay_type_id = sqlc.arg('bay_type_id')
+  AND unaccent(sb.name) ILIKE unaccent('%' || sqlc.arg('service_bay_name')::text || '%')
+ORDER BY sb.dealership_id, sb.name;
+
+-- name: SearchServiceBaysByNameDealershipIDAndTypeID :many
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+FROM service_bays sb
+LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
+WHERE sb.dealership_id = sqlc.arg('dealership_id')
+  AND sb.bay_type_id = sqlc.arg('bay_type_id')
+  AND unaccent(sb.name) ILIKE unaccent('%' || sqlc.arg('service_bay_name')::text || '%')
+ORDER BY sb.name;
 
 -- name: CreateServiceBay :one
 INSERT INTO service_bays (dealership_id, bay_type_id, name, is_active)
@@ -48,33 +85,6 @@ RETURNING id, dealership_id, bay_type_id, name, is_active, created_at, updated_a
 DELETE FROM service_bays
 WHERE id = $1;
 
--- name: ListServiceBaysByTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE bay_type_id = $1
-ORDER BY dealership_id, id;
-
--- name: SearchServiceBaysByNameAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE bay_type_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name;
-
--- name: SearchServiceBaysByNameDealershipIDAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND bay_type_id = $2
-  AND unaccent(name) ILIKE unaccent('%' || $3 || '%')
-ORDER BY name;
-
--- name: ListServiceBaysByDealershipIDAndTypeID :many
-SELECT id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
-FROM service_bays
-WHERE dealership_id = $1
-  AND bay_type_id = $2
-ORDER BY id;
 
 -- SERVICE BAY TYPES
 

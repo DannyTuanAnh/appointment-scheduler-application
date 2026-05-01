@@ -13,7 +13,7 @@ END$$;
 CREATE TABLE IF NOT EXISTS appointments (
     id SERIAL PRIMARY KEY,
     dealership_id INT NOT NULL REFERENCES dealerships(id) ON DELETE CASCADE,
-    service_id INT NOT NULL REFERENCES services(id) ON DELETE RESTRICT,
+    service_id INT NOT NULL REFERENCES services(id) ON DELETE SET NULL,
 
     -- Assigned resources (can be nullable until scheduling occurs)
     bay_id INT NOT NULL REFERENCES service_bays(id) ON DELETE SET NULL,

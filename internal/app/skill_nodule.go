@@ -13,9 +13,16 @@ type SkillModule struct {
 }
 
 func NewSkillModule() *SkillModule {
+	// 1. Initialize repository
 	skillRepo := repositories.NewSkillRepository(db.DB)
+
+	// 2. Initialize service
 	skillService := services.NewSkillService(skillRepo)
+
+	// 3. Initialize handler
 	skillHandler := handlers.NewSkillHandler(skillService)
+
+	// 4. Initialize routes
 	skillRoutes := routes.NewSkillRoutes(skillHandler)
 
 	return &SkillModule{routes: skillRoutes}

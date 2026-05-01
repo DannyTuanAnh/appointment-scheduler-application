@@ -2,7 +2,7 @@
 CREATE TABLE IF NOT EXISTS service_bays (
     id SERIAL PRIMARY KEY,
     dealership_id INT NOT NULL REFERENCES dealerships(id) ON DELETE CASCADE,
-    bay_type_id INT NOT NULL REFERENCES service_bay_types(id) ON DELETE RESTRICT,
+    bay_type_id INT NOT NULL REFERENCES service_bay_types(id) ON DELETE SET NULL,
     name VARCHAR(100) NOT NULL,
     is_active BOOLEAN NOT NULL DEFAULT TRUE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
