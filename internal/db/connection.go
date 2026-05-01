@@ -12,8 +12,9 @@ import (
 )
 
 var (
-	DB     *sqlc.Queries
-	DBPool *pgxpool.Pool
+	TestNil *sqlc.Queries
+	DB      *sqlc.Queries
+	DBPool  *pgxpool.Pool
 )
 
 func InitDB() error {

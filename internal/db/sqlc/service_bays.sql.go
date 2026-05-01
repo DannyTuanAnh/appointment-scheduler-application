@@ -62,24 +62,30 @@ func (q *Queries) CreateServiceBayType(ctx context.Context, name string) (Servic
 	return i, err
 }
 
-const deleteServiceBayByID = `-- name: DeleteServiceBayByID :exec
+const deleteServiceBayByID = `-- name: DeleteServiceBayByID :execrows
 DELETE FROM service_bays
 WHERE id = $1
 `
 
-func (q *Queries) DeleteServiceBayByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteServiceBayByID, id)
-	return err
+func (q *Queries) DeleteServiceBayByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteServiceBayByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const deleteServiceBayTypeByID = `-- name: DeleteServiceBayTypeByID :exec
+const deleteServiceBayTypeByID = `-- name: DeleteServiceBayTypeByID :execrows
 DELETE FROM service_bay_types
 WHERE id = $1
 `
 
-func (q *Queries) DeleteServiceBayTypeByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteServiceBayTypeByID, id)
-	return err
+func (q *Queries) DeleteServiceBayTypeByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteServiceBayTypeByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getServiceBayByID = `-- name: GetServiceBayByID :one

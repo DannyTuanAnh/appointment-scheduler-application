@@ -10,9 +10,8 @@ import (
 	"time"
 
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/utils"
+	"github.com/DannyTuanAnh/appointment-scheduler-application/logs"
 	"github.com/gin-gonic/gin"
-	"github.com/natefinch/lumberjack"
-	"github.com/rs/zerolog"
 )
 
 type CustomResponseWriter struct {
@@ -27,16 +26,7 @@ func (w *CustomResponseWriter) Write(data []byte) (n int, err error) {
 
 func LoggerMiddleware() gin.HandlerFunc {
 
-	logPath := utils.GetEnv("PATH_LOGGER", "")
-
-	logger := zerolog.New(&lumberjack.Logger{
-		Filename:   logPath,
-		MaxSize:    1, // megabytes
-		MaxBackups: 5,
-		MaxAge:     5,    //days
-		Compress:   true, // disable by default
-		LocalTime:  true, // use local time for timestamps
-	}).With().Timestamp().Logger()
+	logger := logs.InitLogger(utils.GetEnv("PATH_LOGGER_HTTP", ""))
 
 	return func(ctx *gin.Context) {
 		start := time.Now()

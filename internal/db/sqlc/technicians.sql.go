@@ -238,7 +238,7 @@ func (q *Queries) ListTechniciansByDealershipID(ctx context.Context, dealershipI
 	return items, nil
 }
 
-const removeSkillFromTechnician = `-- name: RemoveSkillFromTechnician :exec
+const removeSkillFromTechnician = `-- name: RemoveSkillFromTechnician :execrows
 DELETE FROM technician_skills
 WHERE technician_id = $1
   AND skill_id = $2
@@ -249,12 +249,15 @@ type RemoveSkillFromTechnicianParams struct {
 	SkillID      int32 `json:"skill_id"`
 }
 
-func (q *Queries) RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) error {
-	_, err := q.db.Exec(ctx, removeSkillFromTechnician, arg.TechnicianID, arg.SkillID)
-	return err
+func (q *Queries) RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeSkillFromTechnician, arg.TechnicianID, arg.SkillID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const removeSkillsFromTechnician = `-- name: RemoveSkillsFromTechnician :exec
+const removeSkillsFromTechnician = `-- name: RemoveSkillsFromTechnician :execrows
 DELETE FROM technician_skills
 WHERE technician_id = $1
   AND skill_id = ANY($2::int[])
@@ -265,9 +268,12 @@ type RemoveSkillsFromTechnicianParams struct {
 	SkillIds     []int32 `json:"skill_ids"`
 }
 
-func (q *Queries) RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) error {
-	_, err := q.db.Exec(ctx, removeSkillsFromTechnician, arg.TechnicianID, arg.SkillIds)
-	return err
+func (q *Queries) RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeSkillsFromTechnician, arg.TechnicianID, arg.SkillIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const searchTechniciansByNameAndDealershipID = `-- name: SearchTechniciansByNameAndDealershipID :many

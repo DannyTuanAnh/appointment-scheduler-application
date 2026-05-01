@@ -18,14 +18,14 @@ ORDER BY name;
 -- name: UpdateDealershipByID :one
 UPDATE dealerships
 SET
-  name = COALESCE(sqlc.narg('name')::text, name),
-  open_time = COALESCE(sqlc.narg('open_time')::time, open_time),
-  close_time = COALESCE(sqlc.narg('close_time')::time, close_time),
+  name = $2,
+  open_time = $3,
+  close_time = $4,
   updated_at = now()
 WHERE id = $1
 RETURNING id, name, open_time, close_time, created_at, updated_at;
 
--- name: DeleteDealershipByID :exec
+-- name: DeleteDealershipByID :execrows
 DELETE FROM dealerships
 WHERE id = $1;
 

@@ -37,14 +37,17 @@ func (q *Queries) CreateDealership(ctx context.Context, arg CreateDealershipPara
 	return i, err
 }
 
-const deleteDealershipByID = `-- name: DeleteDealershipByID :exec
+const deleteDealershipByID = `-- name: DeleteDealershipByID :execrows
 DELETE FROM dealerships
 WHERE id = $1
 `
 
-func (q *Queries) DeleteDealershipByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteDealershipByID, id)
-	return err
+func (q *Queries) DeleteDealershipByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteDealershipByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getDealershipByID = `-- name: GetDealershipByID :one
@@ -138,9 +141,9 @@ func (q *Queries) SearchDealershipsByName(ctx context.Context, dollar_1 *string)
 const updateDealershipByID = `-- name: UpdateDealershipByID :one
 UPDATE dealerships
 SET
-  name = COALESCE($2::text, name),
-  open_time = COALESCE($3::time, open_time),
-  close_time = COALESCE($4::time, close_time),
+  name = $2,
+  open_time = $3,
+  close_time = $4,
   updated_at = now()
 WHERE id = $1
 RETURNING id, name, open_time, close_time, created_at, updated_at
@@ -148,7 +151,7 @@ RETURNING id, name, open_time, close_time, created_at, updated_at
 
 type UpdateDealershipByIDParams struct {
 	ID        int32       `json:"id"`
-	Name      *string     `json:"name"`
+	Name      string      `json:"name"`
 	OpenTime  pgtype.Time `json:"open_time"`
 	CloseTime pgtype.Time `json:"close_time"`
 }

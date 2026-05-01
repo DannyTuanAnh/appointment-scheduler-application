@@ -54,4 +54,7 @@ buf:
 gen-proto:
 	protoc $(path) --go_out=. --go-grpc_out=.
 
+run-api:
+	go run cmd/api/main.go
+
 .PHONY: import-db export-db migrate-create migrate-up migrate-down migrate-force migrate-drop migrate-goto sqlc gen-proto buf

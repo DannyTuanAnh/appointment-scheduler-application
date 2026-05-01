@@ -27,6 +27,6 @@ SET name = COALESCE(sqlc.narg('name')::text, name),
 WHERE id = sqlc.arg('id')
 RETURNING id, name, created_at, updated_at;
 
--- name: DeleteSkillByID :exec
+-- name: DeleteSkillByID :execrows
 DELETE FROM skills
 WHERE id = $1;

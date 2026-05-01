@@ -72,14 +72,17 @@ func (q *Queries) CreateService(ctx context.Context, arg CreateServiceParams) (S
 	return i, err
 }
 
-const deleteServiceByID = `-- name: DeleteServiceByID :exec
+const deleteServiceByID = `-- name: DeleteServiceByID :execrows
 DELETE FROM services
 WHERE id = $1
 `
 
-func (q *Queries) DeleteServiceByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteServiceByID, id)
-	return err
+func (q *Queries) DeleteServiceByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteServiceByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getServiceByID = `-- name: GetServiceByID :one
@@ -212,7 +215,7 @@ func (q *Queries) ListSkillIDsByServiceID(ctx context.Context, serviceID int32) 
 	return items, nil
 }
 
-const removeSkillRequirementFromService = `-- name: RemoveSkillRequirementFromService :exec
+const removeSkillRequirementFromService = `-- name: RemoveSkillRequirementFromService :execrows
 DELETE FROM service_requirements
 WHERE service_id = $1
   AND skill_id = $2
@@ -223,12 +226,15 @@ type RemoveSkillRequirementFromServiceParams struct {
 	SkillID   int32 `json:"skill_id"`
 }
 
-func (q *Queries) RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) error {
-	_, err := q.db.Exec(ctx, removeSkillRequirementFromService, arg.ServiceID, arg.SkillID)
-	return err
+func (q *Queries) RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeSkillRequirementFromService, arg.ServiceID, arg.SkillID)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
-const removeSkillRequirementsFromService = `-- name: RemoveSkillRequirementsFromService :exec
+const removeSkillRequirementsFromService = `-- name: RemoveSkillRequirementsFromService :execrows
 DELETE FROM service_requirements
 WHERE service_id = $1
   AND skill_id = ANY($2::int[])
@@ -239,9 +245,12 @@ type RemoveSkillRequirementsFromServiceParams struct {
 	SkillIds  []int32 `json:"skill_ids"`
 }
 
-func (q *Queries) RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) error {
-	_, err := q.db.Exec(ctx, removeSkillRequirementsFromService, arg.ServiceID, arg.SkillIds)
-	return err
+func (q *Queries) RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) (int64, error) {
+	result, err := q.db.Exec(ctx, removeSkillRequirementsFromService, arg.ServiceID, arg.SkillIds)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const searchServicesByName = `-- name: SearchServicesByName :many

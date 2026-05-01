@@ -3,30 +3,30 @@ package routes
 import (
 	"context"
 
-	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/db/sqlc"
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/middlewares"
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 type Routes interface {
-	Register(r *gin.RouterGroup)
+	RegisterApp(r *gin.RouterGroup)
 }
 
-func RegisterRoutes(ctx context.Context, r *gin.Engine, db sqlc.Querier, routes ...Routes) {
+func RegisterRoutes(ctx context.Context, r *gin.Engine, routes ...Routes) {
 	// Register middleware for all routes
-	r.Use(middlewares.LoggerMiddleware())
+	r.Use(middlewares.RecoveryMiddleware(), middlewares.MetricsMiddleware(), middlewares.LoggerMiddleware())
 
 	// Public health check endpoint
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "ok"})
-	})
+	r.GET("/", func(c *gin.Context) { c.JSON(200, gin.H{"status": "ok"}) })
+	// Public metrics endpoint
+	r.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	base := r.Group("/api/v1")
 
 	public := base.Group("/app")
 	for _, route := range routes {
-		if publicRoute, ok := route.(interface{ RegisterPublic(r *gin.RouterGroup) }); ok {
-			publicRoute.RegisterPublic(public)
+		if publicRoute, ok := route.(interface{ RegisterApp(r *gin.RouterGroup) }); ok {
+			publicRoute.RegisterApp(public)
 		}
 	}
 

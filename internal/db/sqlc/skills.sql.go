@@ -27,14 +27,17 @@ func (q *Queries) CreateSkill(ctx context.Context, name string) (Skill, error) {
 	return i, err
 }
 
-const deleteSkillByID = `-- name: DeleteSkillByID :exec
+const deleteSkillByID = `-- name: DeleteSkillByID :execrows
 DELETE FROM skills
 WHERE id = $1
 `
 
-func (q *Queries) DeleteSkillByID(ctx context.Context, id int32) error {
-	_, err := q.db.Exec(ctx, deleteSkillByID, id)
-	return err
+func (q *Queries) DeleteSkillByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteSkillByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const getSkillByID = `-- name: GetSkillByID :one

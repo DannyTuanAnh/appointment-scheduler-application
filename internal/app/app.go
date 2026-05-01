@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/config"
-	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/db"
+	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/metrics"
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/routes"
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/validation"
 	"github.com/gin-gonic/gin"
@@ -23,6 +23,8 @@ type Application struct {
 }
 
 func NewApplication(ctx context.Context) *Application {
+	metrics.Init()
+
 	cfg := config.NewConfigServer()
 
 	// 1. Initialize the Gin router
@@ -36,11 +38,13 @@ func NewApplication(ctx context.Context) *Application {
 	}
 
 	// 4. Initialize modules
-	modules := []ModelHTTP{}
+	modules := []ModelHTTP{
+		NewDealershipModule(),
+	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module
 	// and then passing them to the routes.RegisterRoutes function to register them with the Gin router
-	routes.RegisterRoutes(ctx, r, db.DB, getModuleRoutes(modules)...)
+	routes.RegisterRoutes(ctx, r, getModuleRoutes(modules)...)
 
 	return &Application{
 		config:  cfg,
@@ -62,7 +66,6 @@ func (ac *Application) Run(ctx context.Context) (string, error) {
 
 		MaxHeaderBytes: ac.config.Server.MaxHeaderBytes,
 	}
-	log.Printf("Server is running on port %s...", srv.Addr)
 
 	// 2. Create a channel to listen for server errors
 	errChan := make(chan error, 1)

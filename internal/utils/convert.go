@@ -3,6 +3,9 @@ package utils
 import (
 	"regexp"
 	"strings"
+	"time"
+
+	"github.com/jackc/pgx/v5/pgtype"
 )
 
 var (
@@ -16,16 +19,35 @@ func CamelToSnake(str string) string {
 	return strings.ToLower(snake)
 }
 
-// ConvertMapToSliceWithTransform converts a map to a slice and applies a transformation function to each value in one pass.
-// It takes a map of type map[K]V and a transformation function that converts values of type V to type R,
-// and returns a slice of type []R containing the transformed values.
-// This function is useful for efficiently converting a map to a slice while applying a transformation
-// to each value without needing to create an intermediate slice of the original values.
-func ConvertMapToSliceWithTransform[K comparable, V any, R any](m map[K]V, transform func(V) R) []R {
-	result := make([]R, 0, len(m))
-	for _, value := range m {
-		result = append(result, transform(value))
+func NormalizeToSameDate(t time.Time) time.Time {
+	return time.Date(0, 1, 1, t.Hour(), t.Minute(), 0, 0, time.UTC)
+}
+
+func ConvertTimeToPgTypeTime(input time.Time) pgtype.Time {
+	if input.IsZero() {
+		return pgtype.Time{
+			Valid: false,
+		}
 	}
 
-	return result
+	nano := time.Duration(input.Hour())*time.Hour +
+		time.Duration(input.Minute())*time.Minute +
+		time.Duration(input.Second())*time.Second +
+		time.Duration(input.Nanosecond())
+
+	return pgtype.Time{
+		Microseconds: nano.Microseconds(),
+		Valid:        true,
+	}
+}
+
+func ConvertPgTypeTimeToTime(input pgtype.Time) time.Time {
+	if !input.Valid {
+		return time.Time{}
+	}
+
+	d := time.Duration(input.Microseconds) * time.Microsecond
+
+	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+	return zeroTime.Add(d)
 }

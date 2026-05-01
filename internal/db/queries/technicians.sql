@@ -52,12 +52,12 @@ INSERT INTO technician_skills (technician_id, skill_id)
 SELECT sqlc.arg('technician_id'), unnest(sqlc.arg('skill_ids')::int[])
 ON CONFLICT (technician_id, skill_id) DO NOTHING;
 
--- name: RemoveSkillFromTechnician :exec
+-- name: RemoveSkillFromTechnician :execrows
 DELETE FROM technician_skills
 WHERE technician_id = $1
   AND skill_id = $2;
 
--- name: RemoveSkillsFromTechnician :exec
+-- name: RemoveSkillsFromTechnician :execrows
 DELETE FROM technician_skills
 WHERE technician_id = sqlc.arg('technician_id')
   AND skill_id = ANY(sqlc.arg('skill_ids')::int[]);

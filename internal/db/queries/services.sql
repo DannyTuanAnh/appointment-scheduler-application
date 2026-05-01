@@ -15,7 +15,7 @@ SET
 WHERE id = sqlc.arg('id')
 RETURNING id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at;
 
--- name: DeleteServiceByID :exec
+-- name: DeleteServiceByID :execrows
 DELETE FROM services
 WHERE id = $1;
 
@@ -48,12 +48,12 @@ INSERT INTO service_requirements (service_id, skill_id)
 SELECT sqlc.arg('service_id'), unnest(sqlc.arg('skill_ids')::int[])
 ON CONFLICT (service_id, skill_id) DO NOTHING;
 
--- name: RemoveSkillRequirementFromService :exec
+-- name: RemoveSkillRequirementFromService :execrows
 DELETE FROM service_requirements
 WHERE service_id = $1
   AND skill_id = $2;
 
--- name: RemoveSkillRequirementsFromService :exec
+-- name: RemoveSkillRequirementsFromService :execrows
 DELETE FROM service_requirements
 WHERE service_id = sqlc.arg('service_id')
   AND skill_id = ANY(sqlc.arg('skill_ids')::int[]);

@@ -44,7 +44,7 @@ SET
 WHERE id = sqlc.arg('id')
 RETURNING id, dealership_id, bay_type_id, name, is_active, created_at, updated_at;
 
--- name: DeleteServiceBayByID :exec
+-- name: DeleteServiceBayByID :execrows
 DELETE FROM service_bays
 WHERE id = $1;
 
@@ -90,7 +90,7 @@ SET name = COALESCE(sqlc.narg('name')::text, name),
 WHERE id = sqlc.arg('id')
 RETURNING id, name, created_at, updated_at;
 
--- name: DeleteServiceBayTypeByID :exec
+-- name: DeleteServiceBayTypeByID :execrows
 DELETE FROM service_bay_types
 WHERE id = $1;
 

@@ -50,58 +50,55 @@ func HandleValidationErrors(err error) gin.H {
 
 			switch e.Tag() {
 			case "gt":
-				errors[fieldPath] = fmt.Sprintf("%s phải lớn hơn %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be greater than %s", fieldPath, e.Param())
 			case "lt":
-				errors[fieldPath] = fmt.Sprintf("%s phải nhỏ hơn %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be less than %s", fieldPath, e.Param())
 			case "lte":
-				errors[fieldPath] = fmt.Sprintf("%s phải nhỏ hơn hoặc bằng %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be less than or equal to %s", fieldPath, e.Param())
 			case "gte":
-				errors[fieldPath] = fmt.Sprintf("%s phải lớn hơn hoặc bằng %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be greater than or equal to %s", fieldPath, e.Param())
 			case "uuid":
-				errors[fieldPath] = fmt.Sprintf("%s phải là định dạng UUID hợp lệ", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s must be a valid UUID", fieldPath)
 			case "slug":
-				errors[fieldPath] = fmt.Sprintf("%s chỉ được chứa các chữ cái thường, số, dấu gạch ngang hoặc dấu chấm", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s must only contain lowercase letters, numbers, hyphens, or dots", fieldPath)
 			case "min":
-				errors[fieldPath] = fmt.Sprintf("%s phải nhiều hơn %s", fieldPath, e.Param()) + " ký tự"
+				errors[fieldPath] = fmt.Sprintf("%s must be at least %s characters", fieldPath, e.Param())
 			case "max":
-				errors[fieldPath] = fmt.Sprintf("%s phải ít hơn %s", fieldPath, e.Param()) + " ký tự"
+				errors[fieldPath] = fmt.Sprintf("%s must not exceed %s characters", fieldPath, e.Param())
 			case "min_fl":
-				errors[fieldPath] = fmt.Sprintf("%s phải lớn hơn hoặc bằng giá trị %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be greater than or equal to %s", fieldPath, e.Param())
 			case "max_fl":
-				errors[fieldPath] = fmt.Sprintf("%s phải nhỏ hơn hoặc bằng giá trị %s", fieldPath, e.Param())
+				errors[fieldPath] = fmt.Sprintf("%s must be less than or equal to %s", fieldPath, e.Param())
 			case "oneof":
 				allowedValue := strings.ReplaceAll(e.Param(), " ", ", ")
-				errors[fieldPath] = fmt.Sprintf("%s phải là một trong các giá trị sau: %s", fieldPath, allowedValue)
+				errors[fieldPath] = fmt.Sprintf("%s must be one of the following values: %s", fieldPath, allowedValue)
 			case "file_ext":
 				allowedValue := strings.ReplaceAll(e.Param(), " ", ", ")
-				errors[fieldPath] = fmt.Sprintf("%s chỉ cho phép những file sau: %s", fieldPath, allowedValue)
+				errors[fieldPath] = fmt.Sprintf("%s only allows the following extensions: %s", fieldPath, allowedValue)
 			case "required":
-				errors[fieldPath] = fmt.Sprintf("%s là bắt buộc", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s is required", fieldPath)
 			case "search":
-				errors[fieldPath] = fmt.Sprintf("%s chỉ được chứa các chữ cái, số và khoảng trắng", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s must only contain letters, numbers, and spaces", fieldPath)
 			case "email":
-				errors[fieldPath] = fmt.Sprintf("%s phải đúng định dạng là email", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s must be a valid email address", fieldPath)
 			case "datetime":
-				errors[fieldPath] = fmt.Sprintf("%s phải đúng định dạng YYYY-MM-DD", fieldPath)
-			case "email_advanced":
-				errors[fieldPath] = fmt.Sprintf("%s này trong danh sách các tên miền bị cấm", fieldPath)
-			case "strong_password":
-				special := "!@#$%^&*()_+-=[]{},;.:|<>?/~'`" + `"`
-				errors[fieldPath] = fmt.Sprintf("%s phải bao gồm chữ hoa, chữ thường, số và ký tự đặc biệt (%s)", fieldPath, special)
+				format := e.Param()
+				if format == "15:04" {
+					format = "HH:mm"
+				}
+				errors[fieldPath] = fmt.Sprintf("%s must match the format %s", fieldPath, format)
 			case "not_blank":
-				errors[fieldPath] = fmt.Sprintf("%s không chấp nhận chỉ có khoảng trắng", fieldPath)
-			case "is_phone_mobile":
-				errors[fieldPath] = fmt.Sprintf("%s phải là số điện thoại di động hợp lệ của Việt Nam", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s cannot be blank or contain only spaces", fieldPath)
 			default:
-				errors[fieldPath] = fmt.Sprintf("%s không hợp lệ", fieldPath)
+				errors[fieldPath] = fmt.Sprintf("%s is invalid", fieldPath)
 			}
 		}
 
-		return gin.H{"error": errors}
+		return gin.H{"errors": errors}
 	}
 
 	return gin.H{
-		"error":  "Yêu cầu không hợp lệ",
+		"error":  "Invalid request",
 		"detail": err.Error(),
 	}
 }

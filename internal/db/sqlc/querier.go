@@ -23,11 +23,11 @@ type Querier interface {
 	CreateServiceBayType(ctx context.Context, name string) (ServiceBayType, error)
 	CreateSkill(ctx context.Context, name string) (Skill, error)
 	CreateTechnician(ctx context.Context, arg CreateTechnicianParams) (Technician, error)
-	DeleteDealershipByID(ctx context.Context, id int32) error
-	DeleteServiceBayByID(ctx context.Context, id int32) error
-	DeleteServiceBayTypeByID(ctx context.Context, id int32) error
-	DeleteServiceByID(ctx context.Context, id int32) error
-	DeleteSkillByID(ctx context.Context, id int32) error
+	DeleteDealershipByID(ctx context.Context, id int32) (int64, error)
+	DeleteServiceBayByID(ctx context.Context, id int32) (int64, error)
+	DeleteServiceBayTypeByID(ctx context.Context, id int32) (int64, error)
+	DeleteServiceByID(ctx context.Context, id int32) (int64, error)
+	DeleteSkillByID(ctx context.Context, id int32) (int64, error)
 	DeleteTechnicianIfInactiveOverOneMonth(ctx context.Context, id int32) error
 	// Returns active technician IDs who have ALL of the required skills (skill_ids).
 	// If skill_ids is NULL/empty, returns all active technician IDs for the dealership.
@@ -61,10 +61,10 @@ type Querier interface {
 	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]Technician, error)
 	// End-of-day: mark appointments as no_show if they did not start/complete.
 	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, arg MarkNoShowAppointmentsForDealershipInTimeRangeParams) error
-	RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) error
-	RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) error
-	RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) error
-	RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) error
+	RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) (int64, error)
+	RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) (int64, error)
+	RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) (int64, error)
+	RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) (int64, error)
 	SearchAppointmentsByCustomerNameAndDealershipID(ctx context.Context, arg SearchAppointmentsByCustomerNameAndDealershipIDParams) ([]SearchAppointmentsByCustomerNameAndDealershipIDRow, error)
 	SearchDealershipsByName(ctx context.Context, dollar_1 *string) ([]Dealership, error)
 	SearchServiceBayTypesByName(ctx context.Context, dollar_1 *string) ([]ServiceBayType, error)
