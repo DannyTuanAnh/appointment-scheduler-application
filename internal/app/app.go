@@ -40,6 +40,7 @@ func NewApplication(ctx context.Context) *Application {
 	// 4. Initialize modules
 	modules := []ModelHTTP{
 		NewDealershipModule(),
+		NewSkillModule(),
 	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module

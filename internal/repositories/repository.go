@@ -15,3 +15,12 @@ type DealershipRepository interface {
 	CreateDealership(ctx context.Context, name string, openTime, closeTime time.Time) error
 	DeleteDealershipByID(ctx context.Context, id int32) error
 }
+
+type SkillRepository interface {
+	CreateSkill(ctx context.Context, name string) (sqlc.Skill, error)
+	ListSkills(ctx context.Context) ([]sqlc.Skill, error)
+	GetSkillByID(ctx context.Context, id int32) (sqlc.Skill, error)
+	SearchSkillsByName(ctx context.Context, name string) ([]sqlc.Skill, error)
+	UpdateSkillNameByID(ctx context.Context, id int32, name string) (sqlc.Skill, error)
+	DeleteSkillByID(ctx context.Context, id int32) error
+}

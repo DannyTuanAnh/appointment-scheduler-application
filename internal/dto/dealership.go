@@ -1,7 +1,11 @@
 package dto
 
+type SearchDealershipsQuery struct {
+	Name string `form:"name" binding:"required,not_blank,min=2,max=255"`
+}
+
 type CreateDealershipRequest struct {
-	Name      string `json:"name" binding:"required,not_blank,min=2,max=255"`
+	Name      string `json:"name" binding:"required,not_blank,min=1,max=255"`
 	OpenTime  string `json:"open_time" binding:"required,datetime=15:04"`
 	CloseTime string `json:"close_time" binding:"required,datetime=15:04"`
 }
@@ -11,7 +15,7 @@ type RequestDealershipWithID struct {
 }
 
 type UpdateDealershipRequest struct {
-	Name      *string `json:"name" binding:"omitempty,not_blank,min=2,max=255"`
+	Name      *string `json:"name" binding:"omitempty,not_blank,min=1,max=255"`
 	OpenTime  *string `json:"open_time" binding:"omitempty,datetime=15:04"`
 	CloseTime *string `json:"close_time" binding:"omitempty,datetime=15:04"`
 }
@@ -23,8 +27,4 @@ type DealershipResponseHTTP struct {
 	CloseTime string `json:"close_time"`
 	CreatedAt string `json:"created_at"`
 	UpdatedAt string `json:"updated_at"`
-}
-
-type SearchDealershipsQuery struct {
-	Name string `form:"name" binding:"required,not_blank,min=2,max=255"`
 }
