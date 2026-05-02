@@ -10,7 +10,6 @@ import (
 
 type Querier interface {
 	// SERVICE REQUIREMENTS (skills required by services)
-	AddSkillRequirementToService(ctx context.Context, arg AddSkillRequirementToServiceParams) error
 	AddSkillRequirementsToService(ctx context.Context, arg AddSkillRequirementsToServiceParams) error
 	AddSkillsToTechnician(ctx context.Context, arg AddSkillsToTechnicianParams) error
 	CreateAppointment(ctx context.Context, arg CreateAppointmentParams) (Appointment, error)
@@ -37,10 +36,10 @@ type Querier interface {
 	GetDetailTechnicianByID(ctx context.Context, id int32) (GetDetailTechnicianByIDRow, error)
 	GetServiceBayByID(ctx context.Context, id int32) (GetServiceBayByIDRow, error)
 	GetServiceBayTypeByID(ctx context.Context, id int32) (ServiceBayType, error)
-	GetServiceByID(ctx context.Context, id int32) (Service, error)
 	// Includes required skill_ids and required bay type info
 	GetServiceDetailByID(ctx context.Context, id int32) (GetServiceDetailByIDRow, error)
 	GetSkillByID(ctx context.Context, id int32) (Skill, error)
+	GetSkillRequirementIDs(ctx context.Context, serviceID int32) ([]int32, error)
 	GetTechnicianByID(ctx context.Context, id int32) (GetTechnicianByIDRow, error)
 	// Common projection with joined info
 	// Note: duration is tstzrange; use lower(duration) as start time, upper(duration) as end time.
@@ -55,13 +54,11 @@ type Querier interface {
 	ListServiceBaysByDealershipID(ctx context.Context, dealershipID int32) ([]ListServiceBaysByDealershipIDRow, error)
 	ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, arg ListServiceBaysByDealershipIDAndTypeIDParams) ([]ListServiceBaysByDealershipIDAndTypeIDRow, error)
 	ListServiceBaysByTypeID(ctx context.Context, bayTypeID int32) ([]ListServiceBaysByTypeIDRow, error)
-	ListServices(ctx context.Context) ([]Service, error)
-	ListSkillIDsByServiceID(ctx context.Context, serviceID int32) ([]int32, error)
+	ListServices(ctx context.Context) ([]ListServicesRow, error)
 	ListSkills(ctx context.Context) ([]Skill, error)
 	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]ListTechniciansByDealershipIDRow, error)
 	// End-of-day: mark appointments as no_show if they did not start/complete.
 	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, arg MarkNoShowAppointmentsForDealershipInTimeRangeParams) error
-	RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) (int64, error)
 	RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) (int64, error)
 	RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) (int64, error)
 	SearchAppointmentsByCustomerNameAndDealershipID(ctx context.Context, arg SearchAppointmentsByCustomerNameAndDealershipIDParams) ([]SearchAppointmentsByCustomerNameAndDealershipIDRow, error)
@@ -71,7 +68,7 @@ type Querier interface {
 	SearchServiceBaysByNameAndDealershipID(ctx context.Context, arg SearchServiceBaysByNameAndDealershipIDParams) ([]SearchServiceBaysByNameAndDealershipIDRow, error)
 	SearchServiceBaysByNameAndTypeID(ctx context.Context, arg SearchServiceBaysByNameAndTypeIDParams) ([]SearchServiceBaysByNameAndTypeIDRow, error)
 	SearchServiceBaysByNameDealershipIDAndTypeID(ctx context.Context, arg SearchServiceBaysByNameDealershipIDAndTypeIDParams) ([]SearchServiceBaysByNameDealershipIDAndTypeIDRow, error)
-	SearchServicesByName(ctx context.Context, dollar_1 *string) ([]Service, error)
+	SearchServicesByName(ctx context.Context, name string) ([]SearchServicesByNameRow, error)
 	SearchSkillsByName(ctx context.Context, dollar_1 *string) ([]Skill, error)
 	SearchTechniciansByName(ctx context.Context, technicianName string) ([]SearchTechniciansByNameRow, error)
 	SearchTechniciansByNameAndDealershipID(ctx context.Context, arg SearchTechniciansByNameAndDealershipIDParams) ([]SearchTechniciansByNameAndDealershipIDRow, error)

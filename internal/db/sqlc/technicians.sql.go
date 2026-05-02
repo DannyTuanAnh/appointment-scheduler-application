@@ -85,18 +85,13 @@ func (q *Queries) DeleteTechnicianIfInactiveOverOneMonth(ctx context.Context, id
 const findActiveTechniciansByDealershipWithRequiredSkills = `-- name: FindActiveTechniciansByDealershipWithRequiredSkills :many
 SELECT t.id AS technician_id
 FROM technicians t
-WHERE t.dealership_id = $1
-  AND t.is_active = TRUE
-  AND (
-    $2::int[] IS NULL
-    OR cardinality($2::int[]) = 0
-    OR (
-      SELECT array_agg(DISTINCT ts.skill_id)
-      FROM technician_skills ts
-      WHERE ts.technician_id = t.id
-    ) @> $2::int[]
-  )
-ORDER BY t.id
+LEFT JOIN technician_skills ts ON t.id = ts.technician_id
+WHERE t.dealership_id = $1 AND t.is_active = TRUE
+GROUP BY t.id
+HAVING 
+    $2::int[] IS NULL 
+    OR cardinality($2::int[]) = 0 
+    OR array_agg(ts.skill_id) @> $2::int[]
 `
 
 type FindActiveTechniciansByDealershipWithRequiredSkillsParams struct {

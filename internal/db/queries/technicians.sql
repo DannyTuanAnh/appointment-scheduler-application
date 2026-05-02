@@ -83,18 +83,13 @@ ORDER BY t.dealership_id, t.name;
 -- If skill_ids is NULL/empty, returns all active technician IDs for the dealership.
 SELECT t.id AS technician_id
 FROM technicians t
-WHERE t.dealership_id = sqlc.arg('dealership_id')
-  AND t.is_active = TRUE
-  AND (
-    sqlc.arg('skill_ids')::int[] IS NULL
-    OR cardinality(sqlc.arg('skill_ids')::int[]) = 0
-    OR (
-      SELECT array_agg(DISTINCT ts.skill_id)
-      FROM technician_skills ts
-      WHERE ts.technician_id = t.id
-    ) @> sqlc.arg('skill_ids')::int[]
-  )
-ORDER BY t.id;
+LEFT JOIN technician_skills ts ON t.id = ts.technician_id
+WHERE t.dealership_id = $1 AND t.is_active = TRUE
+GROUP BY t.id
+HAVING 
+    sqlc.arg('skill_ids')::int[] IS NULL 
+    OR cardinality(sqlc.arg('skill_ids')::int[]) = 0 
+    OR array_agg(ts.skill_id) @> sqlc.arg('skill_ids')::int[];
 
 -- name: GetDetailTechnicianByID :one
 SELECT

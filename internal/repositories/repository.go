@@ -70,3 +70,17 @@ type TechnicianRepository interface {
 	GetDetailTechnicianByID(ctx context.Context, id int32) (sqlc.GetDetailTechnicianByIDRow, error)
 	GetTechnicianByID(ctx context.Context, id int32) (sqlc.GetTechnicianByIDRow, error)
 }
+
+type ServiceRepository interface {
+	// SERVICES
+	CreateService(ctx context.Context, arg sqlc.CreateServiceParams) error
+	UpdateServiceByID(ctx context.Context, arg sqlc.UpdateServiceByIDParams) error
+	DeleteServiceByID(ctx context.Context, id int32) (int64, error)
+	ListServices(ctx context.Context) ([]sqlc.ListServicesRow, error)
+	GetServiceDetailByID(ctx context.Context, id int32) (sqlc.GetServiceDetailByIDRow, error)
+	SearchServicesByName(ctx context.Context, name string) ([]sqlc.SearchServicesByNameRow, error)
+
+	// SERVICE REQUIREMENTS
+	AddSkillRequirementsToService(ctx context.Context, serviceID int32, skillIDs []int32) error
+	RemoveSkillRequirementsFromService(ctx context.Context, serviceID int32, skillIDs []int32) (int64, error)
+}

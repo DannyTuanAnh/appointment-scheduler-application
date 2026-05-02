@@ -70,3 +70,17 @@ type TechnicianService interface {
 	GetDetailTechnicianByID(ctx context.Context, id int32) (dto.TechnicianDetailResponseHTTP, error)
 	GetTechnicianByID(ctx context.Context, id int32) (dto.TechnicianResponseHTTP, error)
 }
+
+type ServiceService interface {
+	// SERVICES
+	CreateService(ctx context.Context, req dto.CreateServiceRequest) error
+	UpdateServiceByID(ctx context.Context, id int32, req dto.UpdateServiceRequest) error
+	DeleteServiceByID(ctx context.Context, id int32) error
+	ListServices(ctx context.Context) ([]dto.ServiceResponseHTTP, error)
+	GetServiceDetailByID(ctx context.Context, id int32) (dto.ServiceDetailResponseHTTP, error)
+	SearchServicesByName(ctx context.Context, name string) ([]dto.ServiceResponseHTTP, error)
+
+	// SERVICE REQUIREMENTS
+	AddSkillRequirementsToService(ctx context.Context, serviceID int32, skillIDs []int32) error
+	RemoveSkillRequirementsFromService(ctx context.Context, serviceID int32, skillIDs []int32) (int64, error)
+}

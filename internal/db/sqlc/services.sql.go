@@ -10,25 +10,8 @@ import (
 	"time"
 )
 
-const addSkillRequirementToService = `-- name: AddSkillRequirementToService :exec
-
-INSERT INTO service_requirements (service_id, skill_id)
-VALUES ($1, $2)
-ON CONFLICT (service_id, skill_id) DO NOTHING
-`
-
-type AddSkillRequirementToServiceParams struct {
-	ServiceID int32 `json:"service_id"`
-	SkillID   int32 `json:"skill_id"`
-}
-
-// SERVICE REQUIREMENTS (skills required by services)
-func (q *Queries) AddSkillRequirementToService(ctx context.Context, arg AddSkillRequirementToServiceParams) error {
-	_, err := q.db.Exec(ctx, addSkillRequirementToService, arg.ServiceID, arg.SkillID)
-	return err
-}
-
 const addSkillRequirementsToService = `-- name: AddSkillRequirementsToService :exec
+
 INSERT INTO service_requirements (service_id, skill_id)
 SELECT $1, unnest($2::int[])
 ON CONFLICT (service_id, skill_id) DO NOTHING
@@ -39,6 +22,7 @@ type AddSkillRequirementsToServiceParams struct {
 	SkillIds  []int32 `json:"skill_ids"`
 }
 
+// SERVICE REQUIREMENTS (skills required by services)
 func (q *Queries) AddSkillRequirementsToService(ctx context.Context, arg AddSkillRequirementsToServiceParams) error {
 	_, err := q.db.Exec(ctx, addSkillRequirementsToService, arg.ServiceID, arg.SkillIds)
 	return err
@@ -85,27 +69,6 @@ func (q *Queries) DeleteServiceByID(ctx context.Context, id int32) (int64, error
 	return result.RowsAffected(), nil
 }
 
-const getServiceByID = `-- name: GetServiceByID :one
-SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
-FROM services
-WHERE id = $1
-LIMIT 1
-`
-
-func (q *Queries) GetServiceByID(ctx context.Context, id int32) (Service, error) {
-	row := q.db.QueryRow(ctx, getServiceByID, id)
-	var i Service
-	err := row.Scan(
-		&i.ID,
-		&i.RequiredBayTypeID,
-		&i.Name,
-		&i.AnticipatedMinutes,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getServiceDetailByID = `-- name: GetServiceDetailByID :one
 SELECT
   s.id,
@@ -115,16 +78,15 @@ SELECT
   s.anticipated_minutes,
   s.created_at,
   s.updated_at,
-  COALESCE(
-    jsonb_agg(sr.skill_id) FILTER (WHERE sr.skill_id IS NOT NULL),
-    '[]'::jsonb
-  ) AS required_skill_ids
+  (
+    SELECT COALESCE(jsonb_agg(sk.name), '[]'::jsonb)
+    FROM service_requirements sr
+    JOIN skills sk ON sk.id = sr.skill_id
+    WHERE sr.service_id = s.id
+  ) AS required_skills_name
 FROM services s
 JOIN service_bay_types sbt ON sbt.id = s.required_bay_type_id
-LEFT JOIN service_requirements sr ON sr.service_id = s.id
 WHERE s.id = $1
-GROUP BY s.id, sbt.id
-LIMIT 1
 `
 
 type GetServiceDetailByIDRow struct {
@@ -135,7 +97,7 @@ type GetServiceDetailByIDRow struct {
 	AnticipatedMinutes  int32       `json:"anticipated_minutes"`
 	CreatedAt           time.Time   `json:"created_at"`
 	UpdatedAt           time.Time   `json:"updated_at"`
-	RequiredSkillIds    interface{} `json:"required_skill_ids"`
+	RequiredSkillsName  interface{} `json:"required_skills_name"`
 }
 
 // Includes required skill_ids and required bay type info
@@ -150,53 +112,19 @@ func (q *Queries) GetServiceDetailByID(ctx context.Context, id int32) (GetServic
 		&i.AnticipatedMinutes,
 		&i.CreatedAt,
 		&i.UpdatedAt,
-		&i.RequiredSkillIds,
+		&i.RequiredSkillsName,
 	)
 	return i, err
 }
 
-const listServices = `-- name: ListServices :many
-SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
-FROM services
-ORDER BY name
-`
-
-func (q *Queries) ListServices(ctx context.Context) ([]Service, error) {
-	rows, err := q.db.Query(ctx, listServices)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	items := []Service{}
-	for rows.Next() {
-		var i Service
-		if err := rows.Scan(
-			&i.ID,
-			&i.RequiredBayTypeID,
-			&i.Name,
-			&i.AnticipatedMinutes,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listSkillIDsByServiceID = `-- name: ListSkillIDsByServiceID :many
+const getSkillRequirementIDs = `-- name: GetSkillRequirementIDs :many
 SELECT skill_id
 FROM service_requirements
 WHERE service_id = $1
-ORDER BY skill_id
 `
 
-func (q *Queries) ListSkillIDsByServiceID(ctx context.Context, serviceID int32) ([]int32, error) {
-	rows, err := q.db.Query(ctx, listSkillIDsByServiceID, serviceID)
+func (q *Queries) GetSkillRequirementIDs(ctx context.Context, serviceID int32) ([]int32, error) {
+	rows, err := q.db.Query(ctx, getSkillRequirementIDs, serviceID)
 	if err != nil {
 		return nil, err
 	}
@@ -215,23 +143,49 @@ func (q *Queries) ListSkillIDsByServiceID(ctx context.Context, serviceID int32) 
 	return items, nil
 }
 
-const removeSkillRequirementFromService = `-- name: RemoveSkillRequirementFromService :execrows
-DELETE FROM service_requirements
-WHERE service_id = $1
-  AND skill_id = $2
+const listServices = `-- name: ListServices :many
+SELECT s.id, s.required_bay_type_id, sbt.name as type_name, s.name as service_name, s.anticipated_minutes, s.created_at, s.updated_at
+FROM services s
+LEFT JOIN service_bay_types sbt ON sbt.id = s.required_bay_type_id
+ORDER BY s.name
 `
 
-type RemoveSkillRequirementFromServiceParams struct {
-	ServiceID int32 `json:"service_id"`
-	SkillID   int32 `json:"skill_id"`
+type ListServicesRow struct {
+	ID                 int32     `json:"id"`
+	RequiredBayTypeID  int32     `json:"required_bay_type_id"`
+	TypeName           *string   `json:"type_name"`
+	ServiceName        string    `json:"service_name"`
+	AnticipatedMinutes int32     `json:"anticipated_minutes"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
 }
 
-func (q *Queries) RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) (int64, error) {
-	result, err := q.db.Exec(ctx, removeSkillRequirementFromService, arg.ServiceID, arg.SkillID)
+func (q *Queries) ListServices(ctx context.Context) ([]ListServicesRow, error) {
+	rows, err := q.db.Query(ctx, listServices)
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	return result.RowsAffected(), nil
+	defer rows.Close()
+	items := []ListServicesRow{}
+	for rows.Next() {
+		var i ListServicesRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.RequiredBayTypeID,
+			&i.TypeName,
+			&i.ServiceName,
+			&i.AnticipatedMinutes,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const removeSkillRequirementsFromService = `-- name: RemoveSkillRequirementsFromService :execrows
@@ -254,25 +208,37 @@ func (q *Queries) RemoveSkillRequirementsFromService(ctx context.Context, arg Re
 }
 
 const searchServicesByName = `-- name: SearchServicesByName :many
-SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
-FROM services
-WHERE unaccent(name) ILIKE unaccent('%' || $1 || '%')
-ORDER BY name
+SELECT s.id, s.required_bay_type_id, sbt.name as type_name, s.name as service_name, s.anticipated_minutes, s.created_at, s.updated_at
+FROM services s
+LEFT JOIN service_bay_types sbt ON sbt.id = s.required_bay_type_id
+WHERE unaccent(s.name) ILIKE unaccent('%' || $1::text || '%')
+ORDER BY s.name
 `
 
-func (q *Queries) SearchServicesByName(ctx context.Context, dollar_1 *string) ([]Service, error) {
-	rows, err := q.db.Query(ctx, searchServicesByName, dollar_1)
+type SearchServicesByNameRow struct {
+	ID                 int32     `json:"id"`
+	RequiredBayTypeID  int32     `json:"required_bay_type_id"`
+	TypeName           *string   `json:"type_name"`
+	ServiceName        string    `json:"service_name"`
+	AnticipatedMinutes int32     `json:"anticipated_minutes"`
+	CreatedAt          time.Time `json:"created_at"`
+	UpdatedAt          time.Time `json:"updated_at"`
+}
+
+func (q *Queries) SearchServicesByName(ctx context.Context, name string) ([]SearchServicesByNameRow, error) {
+	rows, err := q.db.Query(ctx, searchServicesByName, name)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Service{}
+	items := []SearchServicesByNameRow{}
 	for rows.Next() {
-		var i Service
+		var i SearchServicesByNameRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.RequiredBayTypeID,
-			&i.Name,
+			&i.TypeName,
+			&i.ServiceName,
 			&i.AnticipatedMinutes,
 			&i.CreatedAt,
 			&i.UpdatedAt,
