@@ -84,3 +84,11 @@ type ServiceRepository interface {
 	AddSkillRequirementsToService(ctx context.Context, serviceID int32, skillIDs []int32) error
 	RemoveSkillRequirementsFromService(ctx context.Context, serviceID int32, skillIDs []int32) (int64, error)
 }
+
+type AppointmentRepository interface {
+	GetAppointment(ctx context.Context, params sqlc.GetAppointmentsOfBayOrTechnicianInTimeRangeParams) ([]sqlc.GetAppointmentsOfBayOrTechnicianInTimeRangeRow, error)
+	GetWorkHoursOfDealership(ctx context.Context, dealershipID int32) (time.Time, time.Time, error)
+	GetSkillRequirementIDs(ctx context.Context, erviceID int32) ([]int32, error)
+	GetServiceBayIDsByDealershipIDAndTypeID(ctx context.Context, dealershipID, bayTypeID int32) ([]int32, error)
+	FindTechniciansByDealershipWithRequiredSkills(ctx context.Context, dealershipID int32, skillIDs []int32) ([]int32, error)
+}

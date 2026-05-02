@@ -48,6 +48,19 @@ func ConvertPgTypeTimeToTime(input pgtype.Time) time.Time {
 
 	d := time.Duration(input.Microseconds) * time.Microsecond
 
-	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.FixedZone("UTC+7", 7*60*60))
 	return zeroTime.Add(d)
+}
+
+func ConvertPgTypeTimeToString(input pgtype.Time) string {
+	if !input.Valid {
+		return ""
+	}
+
+	d := time.Duration(input.Microseconds) * time.Microsecond
+
+	zeroTime := time.Date(1, 1, 1, 0, 0, 0, 0, time.UTC)
+	t := zeroTime.Add(d)
+
+	return t.Format("15:04")
 }

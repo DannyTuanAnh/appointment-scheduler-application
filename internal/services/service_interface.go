@@ -84,3 +84,7 @@ type ServiceService interface {
 	AddSkillRequirementsToService(ctx context.Context, serviceID int32, skillIDs []int32) error
 	RemoveSkillRequirementsFromService(ctx context.Context, serviceID int32, skillIDs []int32) (int64, error)
 }
+
+type AppointmentService interface {
+	GetAppointment(ctx context.Context, req dto.GetAppointmentRequest) (dto.AvailabilityResponse, error)
+}

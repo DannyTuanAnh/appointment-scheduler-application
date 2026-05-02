@@ -83,7 +83,10 @@ func HandleValidationErrors(err error) gin.H {
 				errors[fieldPath] = fmt.Sprintf("%s must be a valid email address", fieldPath)
 			case "datetime":
 				format := e.Param()
-				if format == "15:04" {
+				switch format {
+				case "2006-01-02":
+					format = "YYYY-MM-DD"
+				case "15:04":
 					format = "HH:mm"
 				}
 				errors[fieldPath] = fmt.Sprintf("%s must match the format %s", fieldPath, format)

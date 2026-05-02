@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS appointments (
     bay_id INT NOT NULL REFERENCES service_bays(id) ON DELETE SET NULL,
     technician_id INT NOT NULL REFERENCES technicians(id) ON DELETE SET NULL,
 
-    customer_name VARCHAR(100) NOT NULL DEFAULT 'confirmed',
+    customer_name VARCHAR(100) NOT NULL ,
 
-    status status_type NOT NULL,
+    status status_type NOT NULL DEFAULT 'confirmed',
 
     -- Time window: inclusive start, exclusive end: [start, end)
     duration TSTZRANGE NOT NULL,
