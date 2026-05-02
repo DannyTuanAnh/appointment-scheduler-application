@@ -50,3 +50,23 @@ type ServiceBayRepository interface {
 	UpdateServiceBayTypeByID(ctx context.Context, id int32, name string) (sqlc.ServiceBayType, error)
 	DeleteServiceBayTypeByID(ctx context.Context, id int32) error
 }
+
+type TechnicianRepository interface {
+	CreateTechnician(ctx context.Context, arg sqlc.CreateTechnicianParams) error
+	SetTechnicianOnLeave(ctx context.Context, id int32) (sqlc.Technician, error)
+	SetTechnicianBackToWork(ctx context.Context, id int32) (sqlc.Technician, error)
+	TransferTechnicianDealership(ctx context.Context, id int32, dealershipID int32) (sqlc.Technician, error)
+	UpdateTechnicianInfoByID(ctx context.Context, id int32, name *string, level *sqlc.TechnicianLevel) error
+	DeleteTechnicianByID(ctx context.Context, id int32) error
+	DeleteTechnicianIfInactiveOverOneMonth(ctx context.Context, id int32) error
+
+	AddSkillsToTechnician(ctx context.Context, technicianID int32, skillIDs []int32) error
+	RemoveSkillsFromTechnician(ctx context.Context, technicianID int32, skillIDs []int32) (int64, error)
+
+	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]sqlc.ListTechniciansByDealershipIDRow, error)
+	SearchTechniciansByName(ctx context.Context, name string) ([]sqlc.SearchTechniciansByNameRow, error)
+	SearchTechniciansByNameAndDealershipID(ctx context.Context, dealershipID int32, name string) ([]sqlc.SearchTechniciansByNameAndDealershipIDRow, error)
+	FindActiveTechniciansByDealershipWithRequiredSkills(ctx context.Context, dealershipID int32, skillIDs []int32) ([]int32, error)
+	GetDetailTechnicianByID(ctx context.Context, id int32) (sqlc.GetDetailTechnicianByIDRow, error)
+	GetTechnicianByID(ctx context.Context, id int32) (sqlc.GetTechnicianByIDRow, error)
+}

@@ -12,7 +12,6 @@ type Querier interface {
 	// SERVICE REQUIREMENTS (skills required by services)
 	AddSkillRequirementToService(ctx context.Context, arg AddSkillRequirementToServiceParams) error
 	AddSkillRequirementsToService(ctx context.Context, arg AddSkillRequirementsToServiceParams) error
-	AddSkillToTechnician(ctx context.Context, arg AddSkillToTechnicianParams) error
 	AddSkillsToTechnician(ctx context.Context, arg AddSkillsToTechnicianParams) error
 	CreateAppointment(ctx context.Context, arg CreateAppointmentParams) (Appointment, error)
 	CreateDealership(ctx context.Context, arg CreateDealershipParams) (Dealership, error)
@@ -28,6 +27,7 @@ type Querier interface {
 	DeleteServiceBayTypeByID(ctx context.Context, id int32) (int64, error)
 	DeleteServiceByID(ctx context.Context, id int32) (int64, error)
 	DeleteSkillByID(ctx context.Context, id int32) (int64, error)
+	DeleteTechnicianByID(ctx context.Context, id int32) (int64, error)
 	DeleteTechnicianIfInactiveOverOneMonth(ctx context.Context, id int32) error
 	// Returns active technician IDs who have ALL of the required skills (skill_ids).
 	// If skill_ids is NULL/empty, returns all active technician IDs for the dealership.
@@ -41,7 +41,7 @@ type Querier interface {
 	// Includes required skill_ids and required bay type info
 	GetServiceDetailByID(ctx context.Context, id int32) (GetServiceDetailByIDRow, error)
 	GetSkillByID(ctx context.Context, id int32) (Skill, error)
-	GetTechnicianByID(ctx context.Context, id int32) (Technician, error)
+	GetTechnicianByID(ctx context.Context, id int32) (GetTechnicianByIDRow, error)
 	// Common projection with joined info
 	// Note: duration is tstzrange; use lower(duration) as start time, upper(duration) as end time.
 	ListAppointments(ctx context.Context) ([]ListAppointmentsRow, error)
@@ -58,10 +58,9 @@ type Querier interface {
 	ListServices(ctx context.Context) ([]Service, error)
 	ListSkillIDsByServiceID(ctx context.Context, serviceID int32) ([]int32, error)
 	ListSkills(ctx context.Context) ([]Skill, error)
-	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]Technician, error)
+	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]ListTechniciansByDealershipIDRow, error)
 	// End-of-day: mark appointments as no_show if they did not start/complete.
 	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, arg MarkNoShowAppointmentsForDealershipInTimeRangeParams) error
-	RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) (int64, error)
 	RemoveSkillRequirementFromService(ctx context.Context, arg RemoveSkillRequirementFromServiceParams) (int64, error)
 	RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) (int64, error)
 	RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) (int64, error)
@@ -74,7 +73,8 @@ type Querier interface {
 	SearchServiceBaysByNameDealershipIDAndTypeID(ctx context.Context, arg SearchServiceBaysByNameDealershipIDAndTypeIDParams) ([]SearchServiceBaysByNameDealershipIDAndTypeIDRow, error)
 	SearchServicesByName(ctx context.Context, dollar_1 *string) ([]Service, error)
 	SearchSkillsByName(ctx context.Context, dollar_1 *string) ([]Skill, error)
-	SearchTechniciansByNameAndDealershipID(ctx context.Context, arg SearchTechniciansByNameAndDealershipIDParams) ([]Technician, error)
+	SearchTechniciansByName(ctx context.Context, technicianName string) ([]SearchTechniciansByNameRow, error)
+	SearchTechniciansByNameAndDealershipID(ctx context.Context, arg SearchTechniciansByNameAndDealershipIDParams) ([]SearchTechniciansByNameAndDealershipIDRow, error)
 	SetTechnicianBackToWork(ctx context.Context, id int32) (Technician, error)
 	SetTechnicianOnLeave(ctx context.Context, id int32) (Technician, error)
 	TransferTechnicianDealership(ctx context.Context, arg TransferTechnicianDealershipParams) (Technician, error)

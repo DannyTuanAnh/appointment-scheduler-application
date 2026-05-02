@@ -50,3 +50,23 @@ type ServiceBayService interface {
 	UpdateServiceBayTypeByID(ctx context.Context, id int32, name *string) (dto.ServiceBayTypeResponseHTTP, error)
 	DeleteServiceBayTypeByID(ctx context.Context, id int32) error
 }
+
+type TechnicianService interface {
+	CreateTechnician(ctx context.Context, req dto.CreateTechnicianRequest) error
+	SetTechnicianOnLeave(ctx context.Context, id int32) (dto.TechnicianResponseHTTP, error)
+	SetTechnicianBackToWork(ctx context.Context, id int32) (dto.TechnicianResponseHTTP, error)
+	TransferTechnicianDealership(ctx context.Context, id int32, dealershipID int32) (dto.TechnicianResponseHTTP, error)
+	UpdateTechnicianInfoByID(ctx context.Context, id int32, req dto.UpdateTechnicianRequest) error
+	DeleteTechnicianByID(ctx context.Context, id int32) error
+	DeleteTechnicianIfInactiveOverOneMonth(ctx context.Context, id int32) error
+
+	AddSkillsToTechnician(ctx context.Context, technicianID int32, skillIDs []int32) error
+	RemoveSkillsFromTechnician(ctx context.Context, technicianID int32, skillIDs []int32) (int64, error)
+
+	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]dto.TechnicianResponseHTTP, error)
+	SearchTechniciansByName(ctx context.Context, name string) ([]dto.TechnicianResponseHTTP, error)
+	SearchTechniciansByNameAndDealershipID(ctx context.Context, dealershipID int32, name string) ([]dto.TechnicianResponseHTTP, error)
+	FindActiveTechniciansByDealershipWithRequiredSkills(ctx context.Context, dealershipID int32, skillIDs []int32) ([]int32, error)
+	GetDetailTechnicianByID(ctx context.Context, id int32) (dto.TechnicianDetailResponseHTTP, error)
+	GetTechnicianByID(ctx context.Context, id int32) (dto.TechnicianResponseHTTP, error)
+}

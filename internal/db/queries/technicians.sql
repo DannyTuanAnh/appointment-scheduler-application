@@ -42,20 +42,14 @@ WHERE id = $1
   AND inactive_since IS NOT NULL
   AND inactive_since < (now() - interval '1 month');
 
--- name: AddSkillToTechnician :exec
-INSERT INTO technician_skills (technician_id, skill_id)
-VALUES ($1, $2)
-ON CONFLICT (technician_id, skill_id) DO NOTHING;
+-- name: DeleteTechnicianByID :execrows
+DELETE FROM technicians
+WHERE id = $1;
 
 -- name: AddSkillsToTechnician :exec
 INSERT INTO technician_skills (technician_id, skill_id)
 SELECT sqlc.arg('technician_id'), unnest(sqlc.arg('skill_ids')::int[])
 ON CONFLICT (technician_id, skill_id) DO NOTHING;
-
--- name: RemoveSkillFromTechnician :execrows
-DELETE FROM technician_skills
-WHERE technician_id = $1
-  AND skill_id = $2;
 
 -- name: RemoveSkillsFromTechnician :execrows
 DELETE FROM technician_skills
@@ -63,17 +57,26 @@ WHERE technician_id = sqlc.arg('technician_id')
   AND skill_id = ANY(sqlc.arg('skill_ids')::int[]);
 
 -- name: ListTechniciansByDealershipID :many
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
-WHERE dealership_id = $1
-ORDER BY id;
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE t.dealership_id = $1
+ORDER BY t.dealership_id, t.name;
+
+-- name: SearchTechniciansByName :many
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE unaccent(t.name) ILIKE unaccent('%' || sqlc.arg('technician_name')::text || '%')
+ORDER BY t.dealership_id, t.name;
 
 -- name: SearchTechniciansByNameAndDealershipID :many
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
 WHERE dealership_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name;
+  AND unaccent(t.name) ILIKE unaccent('%' || sqlc.arg('technician_name')::text || '%')
+ORDER BY t.dealership_id, t.name;
 
 -- name: FindActiveTechniciansByDealershipWithRequiredSkills :many
 -- Returns active technician IDs who have ALL of the required skills (skill_ids).
@@ -95,26 +98,20 @@ ORDER BY t.id;
 
 -- name: GetDetailTechnicianByID :one
 SELECT
-  t.id,
-  t.dealership_id,
-  t.name,
-  t.level,
-  t.is_active,
-  t.inactive_since,
-  t.created_at,
-  t.updated_at,
-  COALESCE(
-    jsonb_agg(s.name) FILTER (WHERE s.id IS NOT NULL),
-    '[]'::jsonb
+  t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name,
+  t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at,
+  (
+    SELECT COALESCE(jsonb_agg(s.name), '[]'::jsonb)
+    FROM technician_skills ts
+    JOIN skills s ON s.id = ts.skill_id
+    WHERE ts.technician_id = t.id
   ) AS skills
 FROM technicians t
-LEFT JOIN technician_skills ts ON ts.technician_id = t.id
-LEFT JOIN skills s ON s.id = ts.skill_id
-WHERE t.id = $1
-GROUP BY t.id
-LIMIT 1;
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE t.id = $1;
 
 -- name: GetTechnicianByID :one
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
-WHERE id = $1;
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE t.id = $1;

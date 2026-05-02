@@ -42,6 +42,7 @@ func NewApplication(ctx context.Context) *Application {
 		NewDealershipModule(),
 		NewSkillModule(),
 		NewServiceBayModule(),
+		NewTechnicianModule(),
 	}
 
 	// 5. Register all routes from modules by calling the getModuleRoutes helper function to extract the routes from each module

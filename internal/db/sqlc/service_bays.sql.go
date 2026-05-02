@@ -11,25 +11,19 @@ import (
 )
 
 const createServiceBay = `-- name: CreateServiceBay :one
-INSERT INTO service_bays (dealership_id, bay_type_id, name, is_active)
-VALUES ($1, $2, $3, COALESCE($4, TRUE))
+INSERT INTO service_bays (dealership_id, bay_type_id, name)
+VALUES ($1, $2, $3)
 RETURNING id, dealership_id, bay_type_id, name, is_active, created_at, updated_at
 `
 
 type CreateServiceBayParams struct {
-	DealershipID int32       `json:"dealership_id"`
-	BayTypeID    int32       `json:"bay_type_id"`
-	Name         string      `json:"name"`
-	Column4      interface{} `json:"column_4"`
+	DealershipID int32  `json:"dealership_id"`
+	BayTypeID    int32  `json:"bay_type_id"`
+	Name         string `json:"name"`
 }
 
 func (q *Queries) CreateServiceBay(ctx context.Context, arg CreateServiceBayParams) (ServiceBay, error) {
-	row := q.db.QueryRow(ctx, createServiceBay,
-		arg.DealershipID,
-		arg.BayTypeID,
-		arg.Name,
-		arg.Column4,
-	)
+	row := q.db.QueryRow(ctx, createServiceBay, arg.DealershipID, arg.BayTypeID, arg.Name)
 	var i ServiceBay
 	err := row.Scan(
 		&i.ID,
@@ -90,8 +84,9 @@ func (q *Queries) DeleteServiceBayTypeByID(ctx context.Context, id int32) (int64
 }
 
 const getServiceBayByID = `-- name: GetServiceBayByID :one
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.id = $1
 LIMIT 1
@@ -101,6 +96,7 @@ type GetServiceBayByIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -115,6 +111,7 @@ func (q *Queries) GetServiceBayByID(ctx context.Context, id int32) (GetServiceBa
 		&i.ID,
 		&i.DealershipID,
 		&i.BayTypeID,
+		&i.DealershipName,
 		&i.TypeName,
 		&i.ServiceBayName,
 		&i.IsActive,
@@ -175,8 +172,9 @@ func (q *Queries) ListServiceBayTypes(ctx context.Context) ([]ServiceBayType, er
 }
 
 const listServiceBays = `-- name: ListServiceBays :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 ORDER BY sb.dealership_id, sb.bay_type_id, sb.name
 `
@@ -185,6 +183,7 @@ type ListServiceBaysRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -205,6 +204,7 @@ func (q *Queries) ListServiceBays(ctx context.Context) ([]ListServiceBaysRow, er
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -222,8 +222,9 @@ func (q *Queries) ListServiceBays(ctx context.Context) ([]ListServiceBaysRow, er
 }
 
 const listServiceBaysByDealershipID = `-- name: ListServiceBaysByDealershipID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.dealership_id = $1
 ORDER BY sb.bay_type_id, sb.name
@@ -233,6 +234,7 @@ type ListServiceBaysByDealershipIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -253,6 +255,7 @@ func (q *Queries) ListServiceBaysByDealershipID(ctx context.Context, dealershipI
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -270,8 +273,9 @@ func (q *Queries) ListServiceBaysByDealershipID(ctx context.Context, dealershipI
 }
 
 const listServiceBaysByDealershipIDAndTypeID = `-- name: ListServiceBaysByDealershipIDAndTypeID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.dealership_id = $1
   AND sb.bay_type_id = $2
@@ -287,6 +291,7 @@ type ListServiceBaysByDealershipIDAndTypeIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -307,6 +312,7 @@ func (q *Queries) ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, ar
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -324,8 +330,9 @@ func (q *Queries) ListServiceBaysByDealershipIDAndTypeID(ctx context.Context, ar
 }
 
 const listServiceBaysByTypeID = `-- name: ListServiceBaysByTypeID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.bay_type_id = $1
 ORDER BY sb.dealership_id, sb.name
@@ -335,6 +342,7 @@ type ListServiceBaysByTypeIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -355,6 +363,7 @@ func (q *Queries) ListServiceBaysByTypeID(ctx context.Context, bayTypeID int32) 
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -404,8 +413,9 @@ func (q *Queries) SearchServiceBayTypesByName(ctx context.Context, dollar_1 *str
 }
 
 const searchServiceBaysByName = `-- name: SearchServiceBaysByName :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE unaccent(sb.name) ILIKE unaccent('%' || $1::text || '%')
 ORDER BY sb.dealership_id, sb.name
@@ -415,6 +425,7 @@ type SearchServiceBaysByNameRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -435,6 +446,7 @@ func (q *Queries) SearchServiceBaysByName(ctx context.Context, serviceBayName st
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -452,8 +464,9 @@ func (q *Queries) SearchServiceBaysByName(ctx context.Context, serviceBayName st
 }
 
 const searchServiceBaysByNameAndDealershipID = `-- name: SearchServiceBaysByNameAndDealershipID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.dealership_id = $1
   AND unaccent(sb.name) ILIKE unaccent('%' || $2::text || '%')
@@ -469,6 +482,7 @@ type SearchServiceBaysByNameAndDealershipIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -489,6 +503,7 @@ func (q *Queries) SearchServiceBaysByNameAndDealershipID(ctx context.Context, ar
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -506,8 +521,9 @@ func (q *Queries) SearchServiceBaysByNameAndDealershipID(ctx context.Context, ar
 }
 
 const searchServiceBaysByNameAndTypeID = `-- name: SearchServiceBaysByNameAndTypeID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.bay_type_id = $1
   AND unaccent(sb.name) ILIKE unaccent('%' || $2::text || '%')
@@ -523,6 +539,7 @@ type SearchServiceBaysByNameAndTypeIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -543,6 +560,7 @@ func (q *Queries) SearchServiceBaysByNameAndTypeID(ctx context.Context, arg Sear
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,
@@ -560,8 +578,9 @@ func (q *Queries) SearchServiceBaysByNameAndTypeID(ctx context.Context, arg Sear
 }
 
 const searchServiceBaysByNameDealershipIDAndTypeID = `-- name: SearchServiceBaysByNameDealershipIDAndTypeID :many
-SELECT sb.id, sb.dealership_id, sb.bay_type_id, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
+SELECT sb.id, sb.dealership_id, sb.bay_type_id, d.name as dealership_name, sbt.name as type_name, sb.name as service_bay_name, sb.is_active, sb.created_at, sb.updated_at
 FROM service_bays sb
+JOIN dealerships d ON sb.dealership_id = d.id
 LEFT JOIN service_bay_types sbt ON sb.bay_type_id = sbt.id
 WHERE sb.dealership_id = $1
   AND sb.bay_type_id = $2
@@ -579,6 +598,7 @@ type SearchServiceBaysByNameDealershipIDAndTypeIDRow struct {
 	ID             int32     `json:"id"`
 	DealershipID   int32     `json:"dealership_id"`
 	BayTypeID      int32     `json:"bay_type_id"`
+	DealershipName string    `json:"dealership_name"`
 	TypeName       *string   `json:"type_name"`
 	ServiceBayName string    `json:"service_bay_name"`
 	IsActive       bool      `json:"is_active"`
@@ -599,6 +619,7 @@ func (q *Queries) SearchServiceBaysByNameDealershipIDAndTypeID(ctx context.Conte
 			&i.ID,
 			&i.DealershipID,
 			&i.BayTypeID,
+			&i.DealershipName,
 			&i.TypeName,
 			&i.ServiceBayName,
 			&i.IsActive,

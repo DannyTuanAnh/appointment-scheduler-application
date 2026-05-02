@@ -12,22 +12,6 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const addSkillToTechnician = `-- name: AddSkillToTechnician :exec
-INSERT INTO technician_skills (technician_id, skill_id)
-VALUES ($1, $2)
-ON CONFLICT (technician_id, skill_id) DO NOTHING
-`
-
-type AddSkillToTechnicianParams struct {
-	TechnicianID int32 `json:"technician_id"`
-	SkillID      int32 `json:"skill_id"`
-}
-
-func (q *Queries) AddSkillToTechnician(ctx context.Context, arg AddSkillToTechnicianParams) error {
-	_, err := q.db.Exec(ctx, addSkillToTechnician, arg.TechnicianID, arg.SkillID)
-	return err
-}
-
 const addSkillsToTechnician = `-- name: AddSkillsToTechnician :exec
 INSERT INTO technician_skills (technician_id, skill_id)
 SELECT $1, unnest($2::int[])
@@ -70,6 +54,19 @@ func (q *Queries) CreateTechnician(ctx context.Context, arg CreateTechnicianPara
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const deleteTechnicianByID = `-- name: DeleteTechnicianByID :execrows
+DELETE FROM technicians
+WHERE id = $1
+`
+
+func (q *Queries) DeleteTechnicianByID(ctx context.Context, id int32) (int64, error) {
+	result, err := q.db.Exec(ctx, deleteTechnicianByID, id)
+	if err != nil {
+		return 0, err
+	}
+	return result.RowsAffected(), nil
 }
 
 const deleteTechnicianIfInactiveOverOneMonth = `-- name: DeleteTechnicianIfInactiveOverOneMonth :exec
@@ -131,36 +128,30 @@ func (q *Queries) FindActiveTechniciansByDealershipWithRequiredSkills(ctx contex
 
 const getDetailTechnicianByID = `-- name: GetDetailTechnicianByID :one
 SELECT
-  t.id,
-  t.dealership_id,
-  t.name,
-  t.level,
-  t.is_active,
-  t.inactive_since,
-  t.created_at,
-  t.updated_at,
-  COALESCE(
-    jsonb_agg(s.name) FILTER (WHERE s.id IS NOT NULL),
-    '[]'::jsonb
+  t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name,
+  t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at,
+  (
+    SELECT COALESCE(jsonb_agg(s.name), '[]'::jsonb)
+    FROM technician_skills ts
+    JOIN skills s ON s.id = ts.skill_id
+    WHERE ts.technician_id = t.id
   ) AS skills
 FROM technicians t
-LEFT JOIN technician_skills ts ON ts.technician_id = t.id
-LEFT JOIN skills s ON s.id = ts.skill_id
+JOIN dealerships d ON t.dealership_id = d.id
 WHERE t.id = $1
-GROUP BY t.id
-LIMIT 1
 `
 
 type GetDetailTechnicianByIDRow struct {
-	ID            int32              `json:"id"`
-	DealershipID  int32              `json:"dealership_id"`
-	Name          string             `json:"name"`
-	Level         TechnicianLevel    `json:"level"`
-	IsActive      bool               `json:"is_active"`
-	InactiveSince pgtype.Timestamptz `json:"inactive_since"`
-	CreatedAt     time.Time          `json:"created_at"`
-	UpdatedAt     time.Time          `json:"updated_at"`
-	Skills        interface{}        `json:"skills"`
+	ID             int32              `json:"id"`
+	DealershipID   int32              `json:"dealership_id"`
+	DealershipName string             `json:"dealership_name"`
+	TechnicianName string             `json:"technician_name"`
+	Level          TechnicianLevel    `json:"level"`
+	IsActive       bool               `json:"is_active"`
+	InactiveSince  pgtype.Timestamptz `json:"inactive_since"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+	Skills         interface{}        `json:"skills"`
 }
 
 func (q *Queries) GetDetailTechnicianByID(ctx context.Context, id int32) (GetDetailTechnicianByIDRow, error) {
@@ -169,7 +160,8 @@ func (q *Queries) GetDetailTechnicianByID(ctx context.Context, id int32) (GetDet
 	err := row.Scan(
 		&i.ID,
 		&i.DealershipID,
-		&i.Name,
+		&i.DealershipName,
+		&i.TechnicianName,
 		&i.Level,
 		&i.IsActive,
 		&i.InactiveSince,
@@ -181,18 +173,32 @@ func (q *Queries) GetDetailTechnicianByID(ctx context.Context, id int32) (GetDet
 }
 
 const getTechnicianByID = `-- name: GetTechnicianByID :one
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
-WHERE id = $1
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE t.id = $1
 `
 
-func (q *Queries) GetTechnicianByID(ctx context.Context, id int32) (Technician, error) {
+type GetTechnicianByIDRow struct {
+	ID             int32              `json:"id"`
+	DealershipID   int32              `json:"dealership_id"`
+	DealershipName string             `json:"dealership_name"`
+	TechnicianName string             `json:"technician_name"`
+	Level          TechnicianLevel    `json:"level"`
+	IsActive       bool               `json:"is_active"`
+	InactiveSince  pgtype.Timestamptz `json:"inactive_since"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
+func (q *Queries) GetTechnicianByID(ctx context.Context, id int32) (GetTechnicianByIDRow, error) {
 	row := q.db.QueryRow(ctx, getTechnicianByID, id)
-	var i Technician
+	var i GetTechnicianByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.DealershipID,
-		&i.Name,
+		&i.DealershipName,
+		&i.TechnicianName,
 		&i.Level,
 		&i.IsActive,
 		&i.InactiveSince,
@@ -203,25 +209,39 @@ func (q *Queries) GetTechnicianByID(ctx context.Context, id int32) (Technician, 
 }
 
 const listTechniciansByDealershipID = `-- name: ListTechniciansByDealershipID :many
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
-WHERE dealership_id = $1
-ORDER BY id
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE t.dealership_id = $1
+ORDER BY t.dealership_id, t.name
 `
 
-func (q *Queries) ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]Technician, error) {
+type ListTechniciansByDealershipIDRow struct {
+	ID             int32              `json:"id"`
+	DealershipID   int32              `json:"dealership_id"`
+	DealershipName string             `json:"dealership_name"`
+	TechnicianName string             `json:"technician_name"`
+	Level          TechnicianLevel    `json:"level"`
+	IsActive       bool               `json:"is_active"`
+	InactiveSince  pgtype.Timestamptz `json:"inactive_since"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
+func (q *Queries) ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]ListTechniciansByDealershipIDRow, error) {
 	rows, err := q.db.Query(ctx, listTechniciansByDealershipID, dealershipID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Technician{}
+	items := []ListTechniciansByDealershipIDRow{}
 	for rows.Next() {
-		var i Technician
+		var i ListTechniciansByDealershipIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
-			&i.Name,
+			&i.DealershipName,
+			&i.TechnicianName,
 			&i.Level,
 			&i.IsActive,
 			&i.InactiveSince,
@@ -236,25 +256,6 @@ func (q *Queries) ListTechniciansByDealershipID(ctx context.Context, dealershipI
 		return nil, err
 	}
 	return items, nil
-}
-
-const removeSkillFromTechnician = `-- name: RemoveSkillFromTechnician :execrows
-DELETE FROM technician_skills
-WHERE technician_id = $1
-  AND skill_id = $2
-`
-
-type RemoveSkillFromTechnicianParams struct {
-	TechnicianID int32 `json:"technician_id"`
-	SkillID      int32 `json:"skill_id"`
-}
-
-func (q *Queries) RemoveSkillFromTechnician(ctx context.Context, arg RemoveSkillFromTechnicianParams) (int64, error) {
-	result, err := q.db.Exec(ctx, removeSkillFromTechnician, arg.TechnicianID, arg.SkillID)
-	if err != nil {
-		return 0, err
-	}
-	return result.RowsAffected(), nil
 }
 
 const removeSkillsFromTechnician = `-- name: RemoveSkillsFromTechnician :execrows
@@ -276,32 +277,96 @@ func (q *Queries) RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkil
 	return result.RowsAffected(), nil
 }
 
-const searchTechniciansByNameAndDealershipID = `-- name: SearchTechniciansByNameAndDealershipID :many
-SELECT id, dealership_id, name, level, is_active, inactive_since, created_at, updated_at
-FROM technicians
-WHERE dealership_id = $1
-  AND unaccent(name) ILIKE unaccent('%' || $2 || '%')
-ORDER BY name
+const searchTechniciansByName = `-- name: SearchTechniciansByName :many
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE unaccent(t.name) ILIKE unaccent('%' || $1::text || '%')
+ORDER BY t.dealership_id, t.name
 `
 
-type SearchTechniciansByNameAndDealershipIDParams struct {
-	DealershipID int32   `json:"dealership_id"`
-	Column2      *string `json:"column_2"`
+type SearchTechniciansByNameRow struct {
+	ID             int32              `json:"id"`
+	DealershipID   int32              `json:"dealership_id"`
+	DealershipName string             `json:"dealership_name"`
+	TechnicianName string             `json:"technician_name"`
+	Level          TechnicianLevel    `json:"level"`
+	IsActive       bool               `json:"is_active"`
+	InactiveSince  pgtype.Timestamptz `json:"inactive_since"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
 }
 
-func (q *Queries) SearchTechniciansByNameAndDealershipID(ctx context.Context, arg SearchTechniciansByNameAndDealershipIDParams) ([]Technician, error) {
-	rows, err := q.db.Query(ctx, searchTechniciansByNameAndDealershipID, arg.DealershipID, arg.Column2)
+func (q *Queries) SearchTechniciansByName(ctx context.Context, technicianName string) ([]SearchTechniciansByNameRow, error) {
+	rows, err := q.db.Query(ctx, searchTechniciansByName, technicianName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	items := []Technician{}
+	items := []SearchTechniciansByNameRow{}
 	for rows.Next() {
-		var i Technician
+		var i SearchTechniciansByNameRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.DealershipID,
-			&i.Name,
+			&i.DealershipName,
+			&i.TechnicianName,
+			&i.Level,
+			&i.IsActive,
+			&i.InactiveSince,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const searchTechniciansByNameAndDealershipID = `-- name: SearchTechniciansByNameAndDealershipID :many
+SELECT t.id, t.dealership_id, d.name as dealership_name, t.name as technician_name, t.level, t.is_active, t.inactive_since, t.created_at, t.updated_at
+FROM technicians t
+JOIN dealerships d ON t.dealership_id = d.id
+WHERE dealership_id = $1
+  AND unaccent(t.name) ILIKE unaccent('%' || $2::text || '%')
+ORDER BY t.dealership_id, t.name
+`
+
+type SearchTechniciansByNameAndDealershipIDParams struct {
+	DealershipID   int32  `json:"dealership_id"`
+	TechnicianName string `json:"technician_name"`
+}
+
+type SearchTechniciansByNameAndDealershipIDRow struct {
+	ID             int32              `json:"id"`
+	DealershipID   int32              `json:"dealership_id"`
+	DealershipName string             `json:"dealership_name"`
+	TechnicianName string             `json:"technician_name"`
+	Level          TechnicianLevel    `json:"level"`
+	IsActive       bool               `json:"is_active"`
+	InactiveSince  pgtype.Timestamptz `json:"inactive_since"`
+	CreatedAt      time.Time          `json:"created_at"`
+	UpdatedAt      time.Time          `json:"updated_at"`
+}
+
+func (q *Queries) SearchTechniciansByNameAndDealershipID(ctx context.Context, arg SearchTechniciansByNameAndDealershipIDParams) ([]SearchTechniciansByNameAndDealershipIDRow, error) {
+	rows, err := q.db.Query(ctx, searchTechniciansByNameAndDealershipID, arg.DealershipID, arg.TechnicianName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	items := []SearchTechniciansByNameAndDealershipIDRow{}
+	for rows.Next() {
+		var i SearchTechniciansByNameAndDealershipIDRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.DealershipID,
+			&i.DealershipName,
+			&i.TechnicianName,
 			&i.Level,
 			&i.IsActive,
 			&i.InactiveSince,

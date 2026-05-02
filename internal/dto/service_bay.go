@@ -6,7 +6,6 @@ type CreateServiceBayRequest struct {
 	DealershipID int32  `json:"dealership_id" binding:"required,gt=0"`
 	BayTypeID    int32  `json:"bay_type_id" binding:"required,gt=0"`
 	Name         string `json:"name" binding:"required,not_blank,min=1,max=255"`
-	IsActive     *bool  `json:"is_active" binding:"omitempty"`
 }
 
 type UpdateServiceBayRequest struct {
@@ -35,6 +34,7 @@ type ServiceBayResponseHTTP struct {
 	ID             int32   `json:"id"`
 	DealershipID   int32   `json:"dealership_id"`
 	BayTypeID      int32   `json:"bay_type_id"`
+	DealershipName string  `json:"dealership_name"`
 	TypeName       *string `json:"type_name"`
 	ServiceBayName string  `json:"service_bay_name"`
 	IsActive       bool    `json:"is_active"`

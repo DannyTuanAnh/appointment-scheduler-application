@@ -162,6 +162,11 @@ func (h *ServiceBayHandler) UpdateServiceBay(ctx *gin.Context) {
 		return
 	}
 
+	if req.Name == nil && req.DealershipID == nil && req.BayTypeID == nil && req.IsActive == nil {
+		utils.ResponseStatusCode(ctx, http.StatusNoContent)
+		return
+	}
+
 	err := h.service.UpdateServiceBayByID(ctx.Request.Context(), reqID.ID, req)
 	if err != nil {
 		utils.ResponseError(ctx, err)
