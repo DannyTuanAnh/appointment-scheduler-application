@@ -28,7 +28,7 @@ SELECT
 FROM appointments ap
 WHERE status NOT IN ('cancelled', 'no_show') 
   AND (ap.bay_id IN (SELECT id FROM target_bays)  OR ap.technician_id IN (SELECT id FROM target_technicians))
-  AND ap.duration && tstzrange(sqlc.arg('from_time'), sqlc.arg('to_time'), '[)')
+  AND ap.duration && tstzrange(sqlc.arg('from_time')::timestamptz, sqlc.arg('to_time')::timestamptz, '[)')
 ORDER BY lower(ap.duration);
 
 -- Common projection with joined info
@@ -224,9 +224,8 @@ RETURNING id, status, updated_at;
 UPDATE appointments
 SET status = 'no_show',
     updated_at = now()
-WHERE dealership_id = sqlc.arg('dealership_id')
-  AND status NOT IN ('in_progress', 'completed', 'cancelled', 'no_show')
-  AND duration && tstzrange(sqlc.arg('from_time'), sqlc.arg('to_time'), '[)');
+WHERE id = ANY(sqlc.arg('appointment_ids')::int[])
+  AND status NOT IN ('in_progress', 'completed', 'cancelled', 'no_show');
 
 -- name: CreateAppointment :one
 INSERT INTO appointments (
@@ -243,7 +242,7 @@ VALUES (
   sqlc.arg('bay_id'),
   sqlc.arg('technician_id'),
   sqlc.arg('customer_name'),
-  tstzrange(sqlc.arg('start_time'), sqlc.arg('end_time'), '[)')
+  tstzrange(sqlc.arg('start_time')::timestamptz, sqlc.arg('end_time')::timestamptz, '[)')
 )
 RETURNING
   id,

@@ -36,6 +36,7 @@ type Querier interface {
 	GetDetailTechnicianByID(ctx context.Context, id int32) (GetDetailTechnicianByIDRow, error)
 	GetServiceBayByID(ctx context.Context, id int32) (GetServiceBayByIDRow, error)
 	GetServiceBayTypeByID(ctx context.Context, id int32) (ServiceBayType, error)
+	GetServiceByID(ctx context.Context, id int32) (Service, error)
 	// Includes required skill_ids and required bay type info
 	GetServiceDetailByID(ctx context.Context, id int32) (GetServiceDetailByIDRow, error)
 	GetSkillByID(ctx context.Context, id int32) (Skill, error)
@@ -58,7 +59,7 @@ type Querier interface {
 	ListSkills(ctx context.Context) ([]Skill, error)
 	ListTechniciansByDealershipID(ctx context.Context, dealershipID int32) ([]ListTechniciansByDealershipIDRow, error)
 	// End-of-day: mark appointments as no_show if they did not start/complete.
-	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, arg MarkNoShowAppointmentsForDealershipInTimeRangeParams) error
+	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, appointmentIds []int32) error
 	RemoveSkillRequirementsFromService(ctx context.Context, arg RemoveSkillRequirementsFromServiceParams) (int64, error)
 	RemoveSkillsFromTechnician(ctx context.Context, arg RemoveSkillsFromTechnicianParams) (int64, error)
 	SearchAppointmentsByCustomerNameAndDealershipID(ctx context.Context, arg SearchAppointmentsByCustomerNameAndDealershipIDParams) ([]SearchAppointmentsByCustomerNameAndDealershipIDRow, error)

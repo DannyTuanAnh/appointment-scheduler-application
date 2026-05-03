@@ -27,7 +27,7 @@ VALUES (
   $3,
   $4,
   $5,
-  tstzrange($6, $7, '[)')
+  tstzrange($6::timestamptz, $7::timestamptz, '[)')
 )
 RETURNING
   id,
@@ -43,13 +43,13 @@ RETURNING
 `
 
 type CreateAppointmentParams struct {
-	DealershipID int32       `json:"dealership_id"`
-	ServiceID    int32       `json:"service_id"`
-	BayID        int32       `json:"bay_id"`
-	TechnicianID int32       `json:"technician_id"`
-	CustomerName string      `json:"customer_name"`
-	StartTime    interface{} `json:"start_time"`
-	EndTime      interface{} `json:"end_time"`
+	DealershipID int32     `json:"dealership_id"`
+	ServiceID    int32     `json:"service_id"`
+	BayID        int32     `json:"bay_id"`
+	TechnicianID int32     `json:"technician_id"`
+	CustomerName string    `json:"customer_name"`
+	StartTime    time.Time `json:"start_time"`
+	EndTime      time.Time `json:"end_time"`
 }
 
 func (q *Queries) CreateAppointment(ctx context.Context, arg CreateAppointmentParams) (Appointment, error) {
@@ -108,16 +108,16 @@ SELECT
 FROM appointments ap
 WHERE status NOT IN ('cancelled', 'no_show') 
   AND (ap.bay_id IN (SELECT id FROM target_bays)  OR ap.technician_id IN (SELECT id FROM target_technicians))
-  AND ap.duration && tstzrange($1, $2, '[)')
+  AND ap.duration && tstzrange($1::timestamptz, $2::timestamptz, '[)')
 ORDER BY lower(ap.duration)
 `
 
 type GetAppointmentsOfBayOrTechnicianInTimeRangeParams struct {
-	FromTime     interface{} `json:"from_time"`
-	ToTime       interface{} `json:"to_time"`
-	DealershipID int32       `json:"dealership_id"`
-	BayTypeID    int32       `json:"bay_type_id"`
-	SkillIds     []int32     `json:"skill_ids"`
+	FromTime     time.Time `json:"from_time"`
+	ToTime       time.Time `json:"to_time"`
+	DealershipID int32     `json:"dealership_id"`
+	BayTypeID    int32     `json:"bay_type_id"`
+	SkillIds     []int32   `json:"skill_ids"`
 }
 
 type GetAppointmentsOfBayOrTechnicianInTimeRangeRow struct {
@@ -646,20 +646,13 @@ const markNoShowAppointmentsForDealershipInTimeRange = `-- name: MarkNoShowAppoi
 UPDATE appointments
 SET status = 'no_show',
     updated_at = now()
-WHERE dealership_id = $1
+WHERE id = ANY($1::int[])
   AND status NOT IN ('in_progress', 'completed', 'cancelled', 'no_show')
-  AND duration && tstzrange($2, $3, '[)')
 `
 
-type MarkNoShowAppointmentsForDealershipInTimeRangeParams struct {
-	DealershipID int32       `json:"dealership_id"`
-	FromTime     interface{} `json:"from_time"`
-	ToTime       interface{} `json:"to_time"`
-}
-
 // End-of-day: mark appointments as no_show if they did not start/complete.
-func (q *Queries) MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, arg MarkNoShowAppointmentsForDealershipInTimeRangeParams) error {
-	_, err := q.db.Exec(ctx, markNoShowAppointmentsForDealershipInTimeRange, arg.DealershipID, arg.FromTime, arg.ToTime)
+func (q *Queries) MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, appointmentIds []int32) error {
+	_, err := q.db.Exec(ctx, markNoShowAppointmentsForDealershipInTimeRange, appointmentIds)
 	return err
 }
 

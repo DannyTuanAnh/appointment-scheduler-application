@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/db/sqlc"
+	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/dto"
 )
 
 type DealershipRepository interface {
@@ -86,9 +87,25 @@ type ServiceRepository interface {
 }
 
 type AppointmentRepository interface {
+	// Existing availability use-case
 	GetAppointment(ctx context.Context, params sqlc.GetAppointmentsOfBayOrTechnicianInTimeRangeParams) ([]sqlc.GetAppointmentsOfBayOrTechnicianInTimeRangeRow, error)
 	GetWorkHoursOfDealership(ctx context.Context, dealershipID int32) (time.Time, time.Time, error)
-	GetSkillRequirementIDs(ctx context.Context, erviceID int32) ([]int32, error)
+	GetServiceByID(ctx context.Context, id int32) (sqlc.Service, error)
+	GetSkillRequirementIDs(ctx context.Context, serviceID int32) ([]int32, error)
 	GetServiceBayIDsByDealershipIDAndTypeID(ctx context.Context, dealershipID, bayTypeID int32) ([]int32, error)
 	FindTechniciansByDealershipWithRequiredSkills(ctx context.Context, dealershipID int32, skillIDs []int32) ([]int32, error)
+
+	// New appointment management flows (from appointments.sql)
+	ListAppointments(ctx context.Context) ([]sqlc.ListAppointmentsRow, error)
+	ListAppointmentsByDealershipInTimeRange(ctx context.Context, arg sqlc.ListAppointmentsByDealershipInTimeRangeParams) ([]sqlc.ListAppointmentsByDealershipInTimeRangeRow, error)
+	ListAppointmentsByTechnicianInTimeRange(ctx context.Context, arg sqlc.ListAppointmentsByTechnicianInTimeRangeParams) ([]sqlc.ListAppointmentsByTechnicianInTimeRangeRow, error)
+	ListAppointmentsByServiceBayInTimeRange(ctx context.Context, arg sqlc.ListAppointmentsByServiceBayInTimeRangeParams) ([]sqlc.ListAppointmentsByServiceBayInTimeRangeRow, error)
+	ListAppointmentsByServiceInTimeRange(ctx context.Context, arg sqlc.ListAppointmentsByServiceInTimeRangeParams) ([]sqlc.ListAppointmentsByServiceInTimeRangeRow, error)
+
+	SearchAppointmentsByCustomerNameAndDealershipID(ctx context.Context, arg sqlc.SearchAppointmentsByCustomerNameAndDealershipIDParams) ([]sqlc.SearchAppointmentsByCustomerNameAndDealershipIDRow, error)
+
+	// Insert/Update: only return error per convention
+	CreateAppointment(ctx context.Context, arg dto.CreateAppointmentParams) error
+	UpdateAppointmentStatusByID(ctx context.Context, arg sqlc.UpdateAppointmentStatusByIDParams) error
+	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, appointmentIds []int32) error
 }

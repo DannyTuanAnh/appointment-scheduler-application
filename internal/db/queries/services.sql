@@ -25,6 +25,11 @@ FROM services s
 LEFT JOIN service_bay_types sbt ON sbt.id = s.required_bay_type_id
 ORDER BY s.name;
 
+-- name: GetServiceByID :one
+SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
+FROM services
+WHERE id = $1;
+
 -- name: GetServiceDetailByID :one
 -- Includes required skill_ids and required bay type info
 SELECT

@@ -86,5 +86,18 @@ type ServiceService interface {
 }
 
 type AppointmentService interface {
+	// Availability (existing)
 	GetAppointment(ctx context.Context, req dto.GetAppointmentRequest) (dto.AvailabilityResponse, error)
+
+	// Appointment management
+	ListAppointments(ctx context.Context) ([]dto.AppointmentResponseHTTP, error)
+	ListAppointmentsByDealershipInTimeRange(ctx context.Context, req dto.ListAppointmentsByDealershipQuery) ([]dto.AppointmentResponseHTTP, error)
+	ListAppointmentsByTechnicianInTimeRange(ctx context.Context, req dto.ListAppointmentsByTechnicianQuery) ([]dto.AppointmentResponseHTTP, error)
+	ListAppointmentsByServiceBayInTimeRange(ctx context.Context, req dto.ListAppointmentsByServiceBayQuery) ([]dto.AppointmentResponseHTTP, error)
+	ListAppointmentsByServiceInTimeRange(ctx context.Context, req dto.ListAppointmentsByServiceQuery) ([]dto.AppointmentResponseHTTP, error)
+	SearchAppointments(ctx context.Context, req dto.SearchAppointmentsQuery) ([]dto.AppointmentResponseHTTP, error)
+
+	CreateAppointment(ctx context.Context, req dto.CreateAppointmentRequest) error
+	UpdateAppointmentStatusByID(ctx context.Context, appointmentID int32, status string) error
+	MarkNoShowAppointmentsForDealershipInTimeRange(ctx context.Context, appointmentIds []int32) error
 }

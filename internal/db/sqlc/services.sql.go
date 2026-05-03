@@ -69,6 +69,26 @@ func (q *Queries) DeleteServiceByID(ctx context.Context, id int32) (int64, error
 	return result.RowsAffected(), nil
 }
 
+const getServiceByID = `-- name: GetServiceByID :one
+SELECT id, required_bay_type_id, name, anticipated_minutes, created_at, updated_at
+FROM services
+WHERE id = $1
+`
+
+func (q *Queries) GetServiceByID(ctx context.Context, id int32) (Service, error) {
+	row := q.db.QueryRow(ctx, getServiceByID, id)
+	var i Service
+	err := row.Scan(
+		&i.ID,
+		&i.RequiredBayTypeID,
+		&i.Name,
+		&i.AnticipatedMinutes,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getServiceDetailByID = `-- name: GetServiceDetailByID :one
 SELECT
   s.id,
