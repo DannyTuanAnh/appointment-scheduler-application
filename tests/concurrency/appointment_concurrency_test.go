@@ -36,8 +36,8 @@ func TestConcurrentBooking_OnlyOneShouldSucceed(t *testing.T) {
 		ServiceID:    2,
 		BayTypeID:    2,
 		CustomerName: "race-test",
-		StartTime:    "2026-05-02T08:00:00+07:00",
-		EndTime:      "2026-05-02T11:00:00+07:00",
+		StartTime:    "2026-05-02T11:00:00+07:00",
+		EndTime:      "2026-05-02T14:00:00+07:00",
 	}
 
 	var (

@@ -15,10 +15,3 @@ type BusyRecord struct {
 	Start        time.Time
 	End          time.Time
 }
-
-type Slot struct {
-	Start        time.Time
-	End          time.Time
-	BayID        int32
-	TechnicianID int32
-}
