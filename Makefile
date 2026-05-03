@@ -11,7 +11,7 @@ import-db:
 
 # export database
 export-db:
-	docker exec -i postgres-db-chat-app pg_dump -U $(DB_USER) -d $(DB_NAME) > ./backupdb-scheduler-app.sql
+	docker exec -i postgres-db-scheduler-app pg_dump -U $(DB_USER) -d $(DB_NAME) > ./schema.sql
 
 # create new migration file (Example: make migrate-create name=profiles)
 migrate-create:
