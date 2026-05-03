@@ -9,9 +9,12 @@ import (
 
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/app"
 	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/db"
+	"github.com/DannyTuanAnh/appointment-scheduler-application/internal/utils"
 )
 
 func main() {
+	utils.LoadEnv()
+
 	// 1. Initialize original context for the application
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
